@@ -1,0 +1,25 @@
+
+LCD Pinout:
+
+1       IM2
+2       IM1
+3       IM0
+4       GND
+5       K (3)
+6       K (2)
+7       K (1)
+8       A
+9:24    DB15:DB00
+25      GND
+26      RESET
+27      SPI SDO
+28      SPI SDI
+29      RD (parallel: read at rising edge)
+30      WR/RS (parallel: write at rising edge / SPI: register select)
+31      RS/SCK (parallel: register select / SPI: clock)
+32      CS
+33      FMARK (frame sync)
+34      VCI (+3.3v)
+35      IOVCC (+3.3v)
+36      GND
+37:40   something about touch
