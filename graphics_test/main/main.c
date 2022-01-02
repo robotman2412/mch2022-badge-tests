@@ -81,13 +81,32 @@ void app_main() {
 	// Send a test pattern.
 	pax_buf_t buf;
 	pax_buf_init(&buf, framebuffer, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_BUF_16_565RGB);
+	pax_apply_2d(&buf, matrix_2d_translate(buf.width / 2.0, buf.height / 2.0));
+	pax_apply_2d(&buf, matrix_2d_scale(50, 50));
 	while (1) {
 		uint64_t millis = esp_timer_get_time() / 1000;
 		pax_background(&buf, 0x000000);
-		pax_col_t color = pax_col_hsv(millis * 255 / 8000, 255, 255);
+		pax_col_t color0 = pax_col_hsv(millis * 255 / 8000, 255, 255);
+		pax_col_t color1 = pax_col_hsv(millis * 255 / 8000 + 127, 255, 255);
 		float a0 = millis / 3000.0 * M_PI;
 		float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
-		pax_simple_arc(&buf, color, buf.width >> 1, buf.height >> 1, 50, a0, a0 + a1);
+		pax_draw_arc(&buf, color0, 0, 0, 1, a0, a0 + a1);
+		pax_push_2d(&buf);
+		
+		pax_apply_2d(&buf, matrix_2d_rotate(a0));
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
+		pax_pop_2d(&buf);
+		
+		pax_apply_2d(&buf, matrix_2d_rotate(a1));
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
+		pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
+		pax_pop_2d(&buf);
+		
+		pax_pop_2d(&buf);
 		
 		if (ili9341_write(&display, framebuffer)) {
 			ESP_LOGE(TAG, "Display write failed.");
