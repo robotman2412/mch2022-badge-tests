@@ -23,3 +23,25 @@ LCD Pinout:
 35      IOVCC (+3.3v)
 36      GND
 37:40   something about touch
+
+ESP32 Pinout:
+
+SPI_MOSI    12
+SPI_MISO    13
+SPI_SCLK    21
+
+DISPLAY_RST 4
+DISPLAY_CS  16
+DISPLAY_DCX 17 (same as SPI_DC for display)
+
+Connections:
+5   K3          200R to GND
+6   K2          200R to GND
+7   K1          200R to GND
+8   A           +3v3
+26  RESET       ESP32  4: Display RESET
+28  SPI SDI     ESP32 12: MOSI
+30  SPI RS      47R to ESP32 17 Display DCX, 100K to GND
+31  SPI SCK     ESP32 21: SCLK
+32  CS          ESP32 16: Display CS
+
