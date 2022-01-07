@@ -9,6 +9,7 @@
 #include <malloc.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <driver/uart.h>
 #include <esp_timer.h>
 
 // Screen.
@@ -85,9 +86,16 @@ void app_main() {
 	pax_apply_2d(&buf, matrix_2d_scale(50, 50));
 	while (1) {
 		uint64_t millis = esp_timer_get_time() / 1000;
-		pax_background(&buf, 0x000000);
-		pax_col_t color0 = pax_col_hsv(millis * 255 / 8000, 255, 255);
-		pax_col_t color1 = pax_col_hsv(millis * 255 / 8000 + 127, 255, 255);
+		
+		pax_background(&buf, 0xff000000);
+		pax_col_t color0 = 0xffffffff & pax_col_hsv(millis * 255 / 8000, 255, 255);
+		pax_col_t color1 = 0x7fffffff & pax_col_hsv(millis * 255 / 8000 + 127, 255, 255);
+		
+		// uint32_t a = millis / 16;
+		// pax_simple_tri(&buf, color0, 0, 0, a % buf.width, buf.height / 2.0, buf.width / 2.0, a % buf.height);
+		// pax_simple_rect(&buf, color1, a % buf.width - 10, buf.height / 2.0 - 10, 20, 20);
+		// pax_simple_rect(&buf, color1, buf.width / 2.0 - 10, a % buf.height - 10, 20, 20);
+		
 		float a0 = millis / 3000.0 * M_PI;
 		float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
 		pax_draw_arc(&buf, color0, 0, 0, 1, a0, a0 + a1);
