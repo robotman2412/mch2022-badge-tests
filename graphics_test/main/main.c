@@ -19,6 +19,7 @@
 
 // GFX library.
 #include "pax_gfx.h"
+#include "pax_shaders.h"
 
 // Configuration.
 #define SPI_MOSI 12
@@ -42,7 +43,8 @@ static const char *TAG = "main";
 
 pax_col_t test_shader_callback(pax_col_t tint, int x, int y, float u, float v, void *args) {
 	if (!args) {
-		return (u < 0.5) ^ (v >= 0.5) ? 0xffff00ff : 0xff1f1f1f;
+		return pax_col_rgb(u*255, v*255, 0);
+		// return (u < 0.5) ^ (v >= 0.5) ? 0xffff00ff : 0xff1f1f1f;
 	}
 	pax_buf_t *image = (pax_buf_t *) args;
 	return pax_get_pixel(image, u*image->width, v*image->height);
@@ -90,6 +92,10 @@ void app_main() {
 	ESP_LOGI(TAG, "Loading test image.");
 	pax_buf_t image;
 	pax_buf_init(&image, image_empty, 25, 25, PAX_BUF_32_8888ARGB);
+	ESP_LOGI(TAG, "Creating test buffer.");
+	pax_buf_t conv;
+	pax_buf_init(&conv, NULL, 25, 25, PAX_BUF_32_8888ARGB);
+	pax_buf_convert(&conv, &image, PAX_BUF_8_2222ARGB);
 	
 	// Send a test pattern.
 	ESP_LOGI(TAG, "Creating framebuffer.");
@@ -100,13 +106,8 @@ void app_main() {
 		return;
 	}
 	pax_apply_2d(&buf, matrix_2d_translate(buf.width / 2.0, buf.height / 2.0));
-	// pax_apply_2d(&buf, matrix_2d_scale(2, 2));
 	
-	pax_shader_t test_shader = {
-		.callback = test_shader_callback,
-		.callback_args = &image
-	};
-	// pax_debug(&buf);
+	pax_debug(&conv);
 	
 	while (1) {
 		uint64_t millis = esp_timer_get_time() / 1000;
@@ -122,35 +123,39 @@ void app_main() {
 		// pax_draw_tri(&buf, -1, 0, 0, a % buf.width, buf.height / 2.0, buf.width / 2.0, a % buf.height);
 		
 		// Shading demo.
-		pax_push_2d(&buf);
-		float a0 = millis / 3000.0 * M_PI;
-		pax_apply_2d(&buf, matrix_2d_rotate(a0));
-		pax_shade_rect(&buf, -1, &test_shader, NULL, -25, -25, 50, 50);
-		pax_pop_2d(&buf);
-		char *text = "This is, a TEXT.";
-		pax_vec1_t size = pax_text_size(NULL, 18, text);
-		pax_draw_text(&buf, -1, NULL, 18, -size.x / 2, buf.height / 2 - size.y, "This is, a TEXT.");
+		// pax_push_2d(&buf);
+		// float a0 = millis / 3000.0 * M_PI;
+		// pax_apply_2d(&buf, matrix_2d_rotate(a0));
+		// pax_shade_rect(&buf, -1, &test_shader, NULL, -25, -25, 50, 50);
+		// pax_shade_circle(&buf, -1, &test_shader, NULL, 0, 0, 25);
+		// pax_pop_2d(&buf);
+		// char *text = "This is, a TEXT.";
+		// pax_vec1_t size = pax_text_size(NULL, 18, text);
+		// pax_draw_text(&buf, -1, NULL, 18, -size.x / 2, buf.height / 2 - size.y, "This is, a TEXT.");
 		
 		// Epic arcs demo.
-		// float a0 = millis / 3000.0 * M_PI;
-		// float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
-		// pax_draw_arc(&buf, color0, 0, 0, 1, a0, a0 + a1);
-		// pax_push_2d(&buf);
+		float a0 = millis / 3000.0 * M_PI;
+		float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
+		float a2 = millis / 5000.0 * M_PI;
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_rotate(-a2));
+		pax_apply_2d(&buf, matrix_2d_scale(50, 50));
+		pax_shade_arc(&buf, color0, &PAX_SHADER_TEXTURE(&conv), NULL, 0, 0, 1, a0 + a2, a0 + a1 + a2);
 		
-		// pax_apply_2d(&buf, matrix_2d_rotate(a0));
-		// pax_push_2d(&buf);
-		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		// pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
-		// pax_pop_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
+		pax_pop_2d(&buf);
 		
-		// pax_apply_2d(&buf, matrix_2d_rotate(a1));
-		// pax_push_2d(&buf);
-		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		// pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
-		// pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
-		// pax_pop_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_rotate(a1));
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
+		pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
+		pax_pop_2d(&buf);
 		
-		// pax_pop_2d(&buf);
+		pax_pop_2d(&buf);
 		
 		if (ili9341_write(&display, framebuffer)) {
 			ESP_LOGE(TAG, "Display write failed.");
