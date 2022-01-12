@@ -105,7 +105,6 @@ void app_main() {
 		ESP_LOGE(TAG, "Framebuffer creation failed.");
 		return;
 	}
-	pax_apply_2d(&buf, matrix_2d_translate(buf.width / 2.0, buf.height / 2.0));
 	
 	pax_debug(&conv);
 	
@@ -129,15 +128,16 @@ void app_main() {
 		// pax_shade_rect(&buf, -1, &test_shader, NULL, -25, -25, 50, 50);
 		// pax_shade_circle(&buf, -1, &test_shader, NULL, 0, 0, 25);
 		// pax_pop_2d(&buf);
-		// char *text = "This is, a TEXT.";
-		// pax_vec1_t size = pax_text_size(NULL, 18, text);
-		// pax_draw_text(&buf, -1, NULL, 18, -size.x / 2, buf.height / 2 - size.y, "This is, a TEXT.");
+		char *text = "This is, a TEXT.";
+		pax_vec1_t size = pax_text_size(NULL, 18, text);
+		pax_draw_text(&buf, -1, NULL, 18, (buf.width - size.x) / 2, buf.height - size.y, "This is, a TEXT.");
 		
 		// Epic arcs demo.
 		float a0 = millis / 3000.0 * M_PI;
 		float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
 		float a2 = millis / 5000.0 * M_PI;
 		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(buf.width * 0.5, buf.height * 0.5));
 		pax_apply_2d(&buf, matrix_2d_rotate(-a2));
 		pax_apply_2d(&buf, matrix_2d_scale(50, 50));
 		pax_shade_arc(&buf, color0, &PAX_SHADER_TEXTURE(&conv), NULL, 0, 0, 1, a0 + a2, a0 + a1 + a2);
