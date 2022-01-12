@@ -184,7 +184,7 @@ void app_main() {
 		pax_vec1_t size = pax_text_size(NULL, 18, text);
 		pax_draw_text(&buf, color1, NULL, 18, (buf.width - size.x) / 2, 0, text);
 		pax_simple_line(&buf, color1, 0, 19, buf.width - 1, 19);
-		menu_render(&buf, &menu, 0, 20, 90, buf.height);
+		menu_render(&buf, &menu, 0, 20, 100, buf.height);
 		
 		if (ili9341_write(&display, framebuffer)) {
 			ESP_LOGE(TAG, "Display write failed.");
