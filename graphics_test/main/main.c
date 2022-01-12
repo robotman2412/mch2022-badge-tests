@@ -147,22 +147,22 @@ void app_main() {
 		pax_draw_rect(&buf, 0xff000000, -1.3, -1.3, 2.6, 2.6);
 		
 		pax_apply_2d(&buf, matrix_2d_rotate(-a2));
-		pax_shade_arc(&buf, color0, &PAX_SHADER_TEXTURE(&image), NULL, 0, 0, 1, a0 + a2, a0 + a1 + a2);
+		// pax_shade_arc(&buf, color0, &PAX_SHADER_TEXTURE(&image), NULL, 0, 0, 1, a0 + a2, a0 + a1 + a2);
 		// pax_shade_circle(&buf, color0, &PAX_SHADER_TEXTURE(&image), NULL, 0, 0, 1);
-		// pax_draw_arc(&buf, color0, 0, 0, 1, a0 + a2, a0 + a1 + a2);
+		pax_draw_arc(&buf, color0, 0, 0, 1, a0 + a2, a0 + a1 + a2);
 		
-		// pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
-		// pax_push_2d(&buf);
-		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		// pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
-		// pax_pop_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
+		pax_pop_2d(&buf);
 		
-		// pax_apply_2d(&buf, matrix_2d_rotate(a1));
-		// pax_push_2d(&buf);
-		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		// pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
-		// pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
-		// pax_pop_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_rotate(a1));
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
+		pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
+		pax_pop_2d(&buf);
 		
 		pax_pop_2d(&buf);
 		
