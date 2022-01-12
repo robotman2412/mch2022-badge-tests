@@ -157,6 +157,9 @@ void app_main() {
 		
 		pax_pop_2d(&buf);
 		
+		pax_simple_line(&buf, 0xffffff00, 16, 0, 16, buf.height);
+		pax_simple_line(&buf, 0xffffff00, 32, 0, 32, buf.height-1);
+		
 		if (ili9341_write(&display, framebuffer)) {
 			ESP_LOGE(TAG, "Display write failed.");
 			vTaskDelay(3000 / portTICK_PERIOD_MS);
