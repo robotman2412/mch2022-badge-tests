@@ -21,6 +21,9 @@
 #include "pax_gfx.h"
 #include "pax_shaders.h"
 
+// Menu.
+#include "sample_menu.h"
+
 // Configuration.
 #define SPI_MOSI 12
 #define SPI_MISO 13
@@ -40,15 +43,6 @@ ILI9341 display;
 uint8_t framebuffer[ILI9341_BUFFER_SIZE];
 
 static const char *TAG = "main";
-
-pax_col_t test_shader_callback(pax_col_t tint, int x, int y, float u, float v, void *args) {
-	if (!args) {
-		return pax_col_rgb(u*255, v*255, 0);
-		// return (u < 0.5) ^ (v >= 0.5) ? 0xffff00ff : 0xff1f1f1f;
-	}
-	pax_buf_t *image = (pax_buf_t *) args;
-	return pax_get_pixel(image, u*image->width, v*image->height);
-}
 
 void app_main() {
 	
@@ -108,12 +102,25 @@ void app_main() {
 	
 	pax_debug(&conv);
 	
+	menu_entry_t menu_entries[] = {
+		{ .text = "OHM2013" },
+		{ .text = "SHA2017" },
+		{ .text = "MCH2022" }
+	};
+	
+	menu_t menu = {
+		.n_entries = sizeof(menu_entries) / sizeof(menu_entry_t),
+		.entries   = menu_entries,
+		.font_size = 18
+	};
+	
+	pax_background(&buf, 0xff000000);
+	
 	while (1) {
 		uint64_t millis = esp_timer_get_time() / 1000;
 		
-		pax_background(&buf, 0xff000000);
-		pax_col_t color0 =   0xffffffff & pax_col_hsv(millis * 255 / 8000, 255, 255);
-		pax_col_t color1 =   0x7fffffff & pax_col_hsv(millis * 255 / 8000 + 127, 255, 255);
+		pax_col_t color0 =   0xffffffff & pax_col_hsv(millis * 255 / 8000 + 127, 255, 255);
+		pax_col_t color1 =   0xffffffff & pax_col_hsv(millis * 255 / 8000, 255, 255);
 		
 		// Single triangle demo.
 		// uint32_t a = millis / 16;
@@ -128,37 +135,56 @@ void app_main() {
 		// pax_shade_rect(&buf, -1, &test_shader, NULL, -25, -25, 50, 50);
 		// pax_shade_circle(&buf, -1, &test_shader, NULL, 0, 0, 25);
 		// pax_pop_2d(&buf);
-		char *text = "This is, a TEXT.";
-		pax_vec1_t size = pax_text_size(NULL, 18, text);
-		pax_draw_text(&buf, -1, NULL, 18, (buf.width - size.x) / 2, buf.height - size.y, "This is, a TEXT.");
 		
 		// Epic arcs demo.
 		float a0 = millis / 3000.0 * M_PI;
 		float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
 		float a2 = millis / 5000.0 * M_PI;
 		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(buf.width * 0.5, buf.height * 0.5));
-		pax_apply_2d(&buf, matrix_2d_rotate(-a2));
+		pax_apply_2d(&buf, matrix_2d_translate(100 + (buf.width - 100) * 0.5, 20 + (buf.height - 20) * 0.5));
 		pax_apply_2d(&buf, matrix_2d_scale(50, 50));
-		pax_shade_arc(&buf, color0, &PAX_SHADER_TEXTURE(&conv), NULL, 0, 0, 1, a0 + a2, a0 + a1 + a2);
 		
-		pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
-		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
+		pax_draw_rect(&buf, 0xff000000, -1.3, -1.3, 2.6, 2.6);
+		
+		pax_apply_2d(&buf, matrix_2d_rotate(-a2));
+		pax_shade_arc(&buf, color0, &PAX_SHADER_TEXTURE(&image), NULL, 0, 0, 1, a0 + a2, a0 + a1 + a2);
+		// pax_shade_circle(&buf, color0, &PAX_SHADER_TEXTURE(&image), NULL, 0, 0, 1);
+		// pax_draw_arc(&buf, color0, 0, 0, 1, a0 + a2, a0 + a1 + a2);
+		
+		// pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
+		// pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		// pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
+		// pax_pop_2d(&buf);
+		
+		// pax_apply_2d(&buf, matrix_2d_rotate(a1));
+		// pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		// pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
+		// pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
+		// pax_pop_2d(&buf);
+		
 		pax_pop_2d(&buf);
 		
-		pax_apply_2d(&buf, matrix_2d_rotate(a1));
-		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
-		pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
-		pax_pop_2d(&buf);
+		// Line test.
+		// pax_simple_rect(&buf, 0xffff0000, 0, 0, 5, 5);
+		// pax_simple_line(&buf, -1, 0, 0, 4, 4);
+		// float max_x = 10.0 / buf.width;
+		// float max_y = 10.0 / buf.height;
+		// pax_quad_t rect_uv = {
+		// 	.x0 = 0,     .y0 = 0,
+		// 	.x1 = max_x, .y1 = 0,
+		// 	.x2 = max_x, .y2 = max_y,
+		// 	.x3 = 0,     .y3 = max_y
+		// };
+		// pax_shade_rect(&buf, -1, &PAX_SHADER_TEXTURE(&buf), &rect_uv, 10, 0, 50, 50);
 		
-		pax_pop_2d(&buf);
-		
-		pax_simple_line(&buf, 0xffffff00, 16, 0, 16, buf.height);
-		pax_simple_line(&buf, 0xffffff00, 32, 0, 32, buf.height-1);
+		// Menu.
+		char *text = "MCH2022 badge";
+		pax_vec1_t size = pax_text_size(NULL, 18, text);
+		pax_draw_text(&buf, color1, NULL, 18, (buf.width - size.x) / 2, 0, text);
+		pax_simple_line(&buf, color1, 0, 19, buf.width - 1, 19);
+		menu_render(&buf, &menu, 0, 20, 90, buf.height);
 		
 		if (ili9341_write(&display, framebuffer)) {
 			ESP_LOGE(TAG, "Display write failed.");
