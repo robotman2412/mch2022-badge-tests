@@ -20,6 +20,7 @@
 // GFX library.
 #include "pax_gfx.h"
 #include "pax_shaders.h"
+#include "pax_codecs.h"
 
 // Menu.
 #include "sample_menu.h"
@@ -36,7 +37,7 @@
 #define DISPLAY_CS 16
 #define DISPLAY_DCX 17
 
-#include "../components/pax-graphics-lib/test-images/empty.c"
+#include "../components/pax-graphics/test-images/empty.c"
 
 ILI9341 display;
 
@@ -146,6 +147,12 @@ void app_main() {
 	
 	// my_graphics_function();
 	// return;
+	
+	pax_buf_t dummy;
+	
+	// Todo: Create file of memory.
+	FILE *fd = NULL;
+	pax_decode_png(&dummy, fd, PAX_BUF_1_GREY);
 	
 	// Send a test pattern.
 	ESP_LOGI(TAG, "Creating framebuffer.");

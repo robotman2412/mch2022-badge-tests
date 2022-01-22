@@ -5,5 +5,8 @@
 	path = graphics_test/components/spi-ili9341
 	url = https://github.com/Nicolai-Electronics/esp32-component-spi-ili9341
 [submodule "graphics_test/components/pax-graphics-lib"]
-	path = graphics_test/components/pax-graphics-lib
+	path = graphics_test/components/pax-graphics
 	url = https://github.com/robotman2412/pax-graphics
+[submodule "graphics_test/components/pax-codecs"]
+	path = graphics_test/components/pax-codecs
+	url = https://github.com/robotman2412/pax-codecs
