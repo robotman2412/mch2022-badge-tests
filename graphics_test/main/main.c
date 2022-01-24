@@ -25,6 +25,8 @@
 // Menu.
 #include "sample_menu.h"
 
+#include "techdemo.h"
+
 // Configuration.
 #define SPI_MOSI 12
 #define SPI_MISO 13
@@ -80,59 +82,10 @@ unsigned char png_test_png[] = {
 };
 size_t png_test_png_len = 399;
 
-// Pallette test, just 8bpp for nou.
-uint8_t pallette_test_img[] = {
-	0,1,0,1,0,
-	0,0,2,0,0,
-	1,0,0,0,1,
-	0,1,1,1,0
-};
-
-pax_col_t pallette_test_pal[] = {
-	pax_col_argb(0,   0,   0,   0),
-	pax_col_argb(255, 255, 255, 255),
-	pax_col_argb(255, 127, 127, 0)
-};
-
 uint8_t framebuffer[ILI9341_BUFFER_SIZE];
 
 static const char *TAG = "main";
 
-pax_col_t regenboogkots(pax_col_t tint, int x, int y, float u, float v, void *args) {
-	return pax_col_hsv(x / 50.0 * 255.0 + y / 150.0 * 255.0, 255, 255);
-}
-
-void my_graphics_function() {
-    // Setup.
-    pax_buf_t buffer;
-    pax_buf_init(&buffer, framebuffer, 320, 240, PAX_BUF_16_565RGB);
-    
-    // Green background.
-    pax_background(&buffer, pax_col_rgb(0, 255, 0));
-    
-    // Red circle.
-    float midpoint_x = buffer.width  / 2.0; // Middle of the screen horizontally.
-    float midpoint_y = buffer.height / 2.0; // Middle of the screen vertically.
-    float radius     = 50;                  // Nice, big circle.
-    pax_simple_circle(&buffer, pax_col_rgb(255, 0, 0), midpoint_x, midpoint_y, radius);
-    
-    // White text.
-    float text_x     = 0;                   // Top left corner of the screen.
-    float text_y     = 0;                   // Top left corner of the screen.
-    char *my_text    = "Hello, World!";     // You can pick any message you'd like.
-    float text_size  = 18;                  // Twice the normal size for "7x9".
-    pax_draw_text(&buffer, pax_col_rgb(255, 255, 255), PAX_FONT_DEFAULT, text_size, text_x, text_y, my_text);
-    
-    // Put it on the screen.
-    if (ili9341_write(&display, buffer.buf)) {
-        ESP_LOGE("my_tag", "Display write failed.");
-    } else {
-        ESP_LOGI("my_tag", "Display write success.");
-    }
-    
-    // Cleanup.
-    pax_buf_destroy(&buffer);
-}
 
 void app_main() {
 	
@@ -176,38 +129,29 @@ void app_main() {
 	ESP_LOGI(TAG, "Loading test image.");
 	pax_buf_t image;
 	// pax_buf_init(&image, image_empty, 25, 25, PAX_BUF_32_8888ARGB);
-	pax_buf_init(&image, pallette_test_img, 5, 4, PAX_BUF_8_PAL);
-	image.pallette = pallette_test_pal;
-	image.pallette_size = sizeof(pallette_test_pal) / sizeof(pax_col_t);
-	// ESP_LOGI(TAG, "Creating test buffer.");
-	// pax_buf_t conv;
-	// pax_buf_init(&conv, NULL, 25, 25, PAX_BUF_32_8888ARGB);
-	// pax_buf_convert(&conv, &image, PAX_BUF_8_2222ARGB);
-	
-	// my_graphics_function();
-	// return;
-	
-	pax_buf_t dummy;
+	// pax_buf_init(&image, pallette_test_img, 5, 4, PAX_BUF_8_PAL);
+	// image.pallette = pallette_test_pal;
+	// image.pallette_size = sizeof(pallette_test_pal) / sizeof(pax_col_t);
 	
 	// Mount FATFS.
-	ESP_LOGI(TAG, "Mounting filesystem.");
-	FATFS *lolwut;
-	// esp_err_t fatty = esp_vfs_fat_register("/__spiflash", "", 10, &lolwut);
-	esp_vfs_fat_mount_config_t fatty_config = {
-		.format_if_mount_failed = true,
-		.allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
-		.max_files = 20
-	};
-	wl_handle_t myhandle = WL_INVALID_HANDLE;
-	esp_err_t fatty = esp_vfs_fat_spiflash_mount("/__spiflash", "storage", &fatty_config, &myhandle);
-	if (fatty) {
-		ESP_LOGE(TAG, "FATFS error %d", fatty);
-		return;
-	}
+	// ESP_LOGI(TAG, "Mounting filesystem.");
+	// FATFS *lolwut;
+	// // esp_err_t fatty = esp_vfs_fat_register("/__spiflash", "", 10, &lolwut);
+	// esp_vfs_fat_mount_config_t fatty_config = {
+	// 	.format_if_mount_failed = true,
+	// 	.allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
+	// 	.max_files = 20
+	// };
+	// wl_handle_t myhandle = WL_INVALID_HANDLE;
+	// esp_err_t fatty = esp_vfs_fat_spiflash_mount("/__spiflash", "storage", &fatty_config, &myhandle);
+	// if (fatty) {
+	// 	ESP_LOGE(TAG, "FATFS error 0x%x", fatty);
+	// 	return;
+	// }
 	
 	// Todo: Create file of memory.
-	FILE *fd = fopen("/__spiflash/test_img.png", "w+");
-	ESP_LOGW(TAG, "lmao is %p", fd);
+	// FILE *fd = fopen("/__spiflash/test_img.png", "w+");
+	// ESP_LOGW(TAG, "lmao is %p", fd);
 	// fwrite(png_test_png, 1, png_test_png_len, fd);
 	// fseek(fd, 0, SEEK_SET);
 	// pax_decode_png(&dummy, fd, PAX_BUF_1_GREY);
@@ -220,6 +164,32 @@ void app_main() {
 		ESP_LOGE(TAG, "Framebuffer creation failed.");
 		return;
 	}
+	pax_buf_t clip;
+	ESP_LOGI(TAG, "Creating clip buffer.");
+	pax_buf_init(&clip, NULL, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_TD_BUF_TYPE);
+	if (pax_last_error) {
+		ESP_LOGE(TAG, "Clip buffer creation failed.");
+		return;
+	}
+	
+	pax_techdemo_init(&buf, &clip);
+	uint64_t start = esp_timer_get_time() / 1000;
+	while (1) {
+		uint64_t now = esp_timer_get_time() / 1000 - start;
+		bool fin = pax_techdemo_draw(now);
+		
+		if (ili9341_write(&display, framebuffer)) {
+			ESP_LOGE(TAG, "Display write failed.");
+			vTaskDelay(3000 / portTICK_PERIOD_MS);
+			esp_restart();
+		}
+		if (fin) {
+			vTaskDelay(5000 / portTICK_PERIOD_MS);
+			pax_techdemo_init(&buf, &clip);
+			start = esp_timer_get_time() / 1000;
+		}
+	}
+	return;
 	
 	// pax_debug(&conv);
 	
@@ -233,10 +203,6 @@ void app_main() {
 		.n_entries = sizeof(menu_entries) / sizeof(menu_entry_t),
 		.entries   = menu_entries,
 		.font_size = 18
-	};
-	
-	pax_shader_t kots = {
-		.callback = regenboogkots
 	};
 	
 	pax_background(&buf, 0xff000000);
