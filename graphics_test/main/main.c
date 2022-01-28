@@ -21,6 +21,7 @@
 #include "pax_gfx.h"
 #include "pax_shaders.h"
 #include "pax_codecs.h"
+#include "fake_file.h"
 
 // Menu.
 #include "sample_menu.h"
@@ -164,39 +165,45 @@ void app_main() {
 		ESP_LOGE(TAG, "Framebuffer creation failed.");
 		return;
 	}
-	pax_buf_t clip;
-	ESP_LOGI(TAG, "Creating clip buffer.");
-	pax_buf_init(&clip, NULL, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_TD_BUF_TYPE);
-	if (pax_last_error) {
-		ESP_LOGE(TAG, "Clip buffer creation failed.");
-		return;
-	}
+	// pax_buf_t clip;
+	// ESP_LOGI(TAG, "Creating clip buffer.");
+	// pax_buf_init(&clip, NULL, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_TD_BUF_TYPE);
+	// if (pax_last_error) {
+	// 	ESP_LOGE(TAG, "Clip buffer creation failed.");
+	// 	return;
+	// }
 	
-	pax_techdemo_init(&buf, &clip);
-	uint64_t start = esp_timer_get_time() / 1000;
-	char text_buf[32];
-	while (1) {
-		uint64_t pre = esp_timer_get_time();
-		uint64_t now = esp_timer_get_time() / 1000 - start;
-		bool fin = pax_techdemo_draw(now);
-		uint64_t post = esp_timer_get_time();
-		int fps = 1000000 / (post - pre);
-		snprintf(text_buf, 31, "%d FPS", fps);
-		pax_vec1_t text_size = pax_text_size(PAX_FONT_DEFAULT, 9, text_buf);
-		pax_draw_text(&buf, -1, PAX_FONT_DEFAULT, 9, buf.width - text_size.x - 1, 0, text_buf);
+	// pax_techdemo_init(&buf, &clip);
+	// uint64_t start = esp_timer_get_time() / 1000;
+	// char text_buf[32];
+	// while (1) {
+	// 	uint64_t pre = esp_timer_get_time();
+	// 	uint64_t now = esp_timer_get_time() / 1000 - start;
+	// 	bool fin = pax_techdemo_draw(now);
+	// 	uint64_t post = esp_timer_get_time();
+	// 	int fps = 1000000 / (post - pre);
+	// 	snprintf(text_buf, 31, "%d FPS", fps);
+	// 	pax_vec1_t text_size = pax_text_size(PAX_FONT_DEFAULT, 9, text_buf);
+	// 	pax_draw_text(&buf, -1, PAX_FONT_DEFAULT, 9, buf.width - text_size.x - 1, 0, text_buf);
 		
-		if (ili9341_write(&display, framebuffer)) {
-			ESP_LOGE(TAG, "Display write failed.");
-			vTaskDelay(3000 / portTICK_PERIOD_MS);
-			esp_restart();
-		}
-		if (fin) {
-			vTaskDelay(5000 / portTICK_PERIOD_MS);
-			pax_techdemo_init(&buf, &clip);
-			start = esp_timer_get_time() / 1000;
-		}
-	}
-	return;
+	// 	if (ili9341_write(&display, framebuffer)) {
+	// 		ESP_LOGE(TAG, "Display write failed.");
+	// 		vTaskDelay(3000 / portTICK_PERIOD_MS);
+	// 		esp_restart();
+	// 	}
+	// 	if (fin) {
+	// 		vTaskDelay(5000 / portTICK_PERIOD_MS);
+	// 		pax_techdemo_init(&buf, &clip);
+	// 		start = esp_timer_get_time() / 1000;
+	// 	}
+	// }
+	// return;
+	
+	pax_buf_t png_test_buf;
+	FILE *png_fd = xopenmem(png_test_png, png_test_png_len);
+	pax_decode_png(&png_test_buf, png_fd, PAX_BUF_32_8888ARGB);
+	pax_background(&png_test_buf, 0);
+	xclose(png_fd);
 	
 	// pax_debug(&conv);
 	
@@ -212,7 +219,8 @@ void app_main() {
 		.font_size = 18
 	};
 	
-	pax_background(&buf, 0xff000000);
+	// pax_background(&buf, 0xff000000);
+	pax_background(&buf, 0xffffffff);
 	
 	pax_push_2d(&buf);
 	pax_pop_2d(&buf);
@@ -237,35 +245,42 @@ void app_main() {
 		// pax_shade_circle(&buf, -1, &test_shader, NULL, 0, 0, 25);
 		// pax_pop_2d(&buf);
 		
+		// Gimme PNG.
+		pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(100 + (buf.width - 100) * 0.5, 20 + (buf.height - 20) * 0.5));
+		pax_apply_2d(&buf, matrix_2d_scale(10, 10));
+		pax_shade_rect(&buf, -1, &PAX_SHADER_TEXTURE(&png_test_buf), NULL, 0, 0, png_test_buf.width, png_test_buf.height);
+		pax_pop_2d(&buf);
+		
 		// Epic arcs demo.
-		float a0 = millis / 3000.0 * M_PI;
-		float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
-		float a2 = millis / 5000.0 * M_PI;
-		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(100 + (buf.width - 100) * 0.5, 20 + (buf.height - 20) * 0.5));
-		pax_apply_2d(&buf, matrix_2d_scale(50, 50));
+		// float a0 = millis / 3000.0 * M_PI;
+		// float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
+		// float a2 = millis / 5000.0 * M_PI;
+		// pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(100 + (buf.width - 100) * 0.5, 20 + (buf.height - 20) * 0.5));
+		// pax_apply_2d(&buf, matrix_2d_scale(50, 50));
 		
-		pax_draw_rect(&buf, 0xff000000, -1.3, -1.3, 2.6, 2.6);
+		// pax_draw_rect(&buf, 0xff000000, -1.3, -1.3, 2.6, 2.6);
 		
-		pax_apply_2d(&buf, matrix_2d_rotate(-a2));
-		// pax_shade_arc(&buf, color0, &kots, NULL, 0, 0, 1, a0 + a2, a0 + a1 + a2);
-		// pax_shade_circle(&buf, -1, &PAX_SHADER_TEXTURE(&image), NULL, 0, 0, 1);
-		pax_draw_arc(&buf, color0, 0, 0, 1, a0 + a2, a0 + a1 + a2);
+		// pax_apply_2d(&buf, matrix_2d_rotate(-a2));
+		// // pax_shade_arc(&buf, color0, &kots, NULL, 0, 0, 1, a0 + a2, a0 + a1 + a2);
+		// // pax_shade_circle(&buf, -1, &PAX_SHADER_TEXTURE(&image), NULL, 0, 0, 1);
+		// pax_draw_arc(&buf, color0, 0, 0, 1, a0 + a2, a0 + a1 + a2);
 		
-		pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
-		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
-		pax_pop_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
+		// pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		// pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
+		// pax_pop_2d(&buf);
 		
-		pax_apply_2d(&buf, matrix_2d_rotate(a1));
-		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
-		pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
-		pax_pop_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_rotate(a1));
+		// pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		// pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
+		// pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
+		// pax_pop_2d(&buf);
 		
-		pax_pop_2d(&buf);
+		// pax_pop_2d(&buf);
 		
 		// Line test.
 		// pax_simple_rect(&buf, 0xffff0000, 0, 0, 5, 5);
@@ -281,11 +296,11 @@ void app_main() {
 		// pax_shade_rect(&buf, -1, &PAX_SHADER_TEXTURE(&buf), &rect_uv, 10, 0, 50, 50);
 		
 		// Menu.
-		char *text = "MCH2022 badge";
-		pax_vec1_t size = pax_text_size(NULL, 18, text);
-		pax_draw_text(&buf, color1, NULL, 18, (buf.width - size.x) / 2, 0, text);
-		pax_simple_line(&buf, color1, 0, 19, buf.width - 1, 19);
-		menu_render(&buf, &menu, 0, 20, 100, buf.height);
+		// char *text = "MCH2022 badge";
+		// pax_vec1_t size = pax_text_size(NULL, 18, text);
+		// pax_draw_text(&buf, color1, NULL, 18, (buf.width - size.x) / 2, 0, text);
+		// pax_simple_line(&buf, color1, 0, 19, buf.width - 1, 19);
+		// menu_render(&buf, &menu, 0, 20, 100, buf.height);
 		
 		if (ili9341_write(&display, framebuffer)) {
 			ESP_LOGE(TAG, "Display write failed.");

@@ -13,9 +13,10 @@ extern "C" {
 #include "pax_gfx.h"
 
 /* ================ types ================= */
-#define TD_DRAW_NONE   0
-#define TD_DRAW_SHAPES 1
-#define TD_DRAW_SPEED  2
+#define TD_DRAW_NONE    0
+#define TD_DRAW_SHAPES  1
+#define TD_DRAW_SHIMMER 2
+#define TD_DRAW_SPEED   3
 
 #define TD_INTERP_TYPE_INT 0
 #define TD_INTERP_TYPE_COL 1
@@ -35,10 +36,10 @@ struct td_set;
 typedef struct td_event td_event_t;
 typedef struct td_lerp  td_lerp_t;
 typedef struct td_set td_set_t;
-typedef void (*td_func_t)(void *args);
+typedef void (*td_func_t)(size_t planned_time, size_t planned_duration, void *args);
 
 struct td_event {
-    size_t     time;
+    size_t     duration;
     td_func_t  callback;
     void      *callback_args;
 };
@@ -48,6 +49,7 @@ struct td_lerp {
     td_lerp_t *next;
     size_t     start;
     size_t     end;
+    size_t     duration;
     union {
         int   *int_ptr;
         float *float_ptr;

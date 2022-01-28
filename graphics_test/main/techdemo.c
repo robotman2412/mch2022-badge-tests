@@ -12,39 +12,44 @@ static const char *TAG = "pax-techdemo";
 /* ======= choreographed varialbes ======== */
 
 // Next event in the choreography.
-static size_t current_event = 0;
+static size_t current_event;
 
 // Scaling applied to the clip buffer.
-static float      clip_scaling = 1;
+static float      clip_scaling;
 // Panning (translation) applied to the clip buffer (in parts of width).
-static float      clip_pan_x = 0;
+static float      clip_pan_x;
 // Panning (translation) applied to the clip buffer (in parts of height).
-static float      clip_pan_y = 0;
+static float      clip_pan_y;
 // Whether to overlay the clip buffer.
-static bool       overlay_clip = true;
+static bool       overlay_clip;
 
 // Color used for text overlay.
-static pax_col_t  text_col = 0x00ffffff;
+static pax_col_t  text_col;
 // String used for text overlay.
-static char      *text_str = NULL;
+static char      *text_str;
 // Point size used for text overlay.
-static float      text_size = 18;
+static float      text_size;
 
 // Whether to show the three shapes.
-static uint8_t    to_draw = TD_DRAW_SHAPES;
+static int        to_draw;
 // Angle for rotating shapes.
-static float      angle_0 = 0;
+static float      angle_0;
 // Angle for orbiting shapes.
-static float      angle_1 = 0;
+static float      angle_1;
 
 // Scaling applied to the buffer.
-static float      buffer_scaling = 1;
+static float      buffer_scaling;
 // Panning (translation) applied to the buffer (in parts of width).
-static float      buffer_pan_x = 0;
+static float      buffer_pan_x;
 // Panning (translation) applied to the buffer (in parts of height).
-static float      buffer_pan_y = 0;
+static float      buffer_pan_y;
+// Whether to apply the background color.
+static bool       use_background;
 // Background applied to the buffer.
-static pax_col_t  background_color = 0;
+static pax_col_t  background_color;
+
+// Linked list of interpolations.
+static td_lerp_t *lerps = NULL;
 
 /* ================ config ================ */
 
@@ -64,6 +69,8 @@ static bool is_initialised = false;
 static bool warning_made = false;
 // Last time passed to pax_techdemo_draw.
 static size_t current_time;
+// Planned time for the next event.
+static size_t planned_time;
 // Palette used for the clip buffer.
 static pax_col_t palette[4] = {
 	0xffffffff,
@@ -108,8 +115,17 @@ void pax_techdemo_init(pax_buf_t *framebuffer, pax_buf_t *clipbuffer) {
 		height      = buffer->height;
 		is_initialised = true;
 		
+		// Reset interpolation list.
+		while (lerps) {
+			lerps->prev = NULL;
+			td_lerp_t *tmp = lerps->next;
+			lerps->next = NULL;
+			lerps = tmp;
+		}
+		
 		// Reset variables.
 		current_event    = 0;
+		planned_time     = 0;
 		
 		palette[0]       = 0xffffffff;
 		palette[1]       = 0xffffffff;
@@ -121,7 +137,7 @@ void pax_techdemo_init(pax_buf_t *framebuffer, pax_buf_t *clipbuffer) {
 		clip_pan_y       = 0;
 		overlay_clip     = true;
 		
-		text_col         = 0x00ffffff;
+		text_col         = 0xffffffff;
 		text_str         = NULL;
 		text_size        = 18;
 		
@@ -133,8 +149,31 @@ void pax_techdemo_init(pax_buf_t *framebuffer, pax_buf_t *clipbuffer) {
 		buffer_pan_x     = 0;
 		buffer_pan_y     = 0;
 		background_color = 0;
+		use_background   = true;
 		
 		ESP_LOGI(TAG, "PAX tech demo initialised successfully.");
+	}
+}
+
+/* =============== shaders ================ */
+
+// A shimmery shader.
+pax_col_t td_shader_shimmer(pax_col_t tint, int x, int y, float u, float v, void *_args) {
+	// Manhattan distance from the top left corner.
+	float dist  = u + v;
+	float scale = 0.2;
+	float phase = (1 + scale) * 2 * angle_0 - scale;
+	float value = dist - phase;
+	pax_col_t normal    = 0xfff9e82a;
+	pax_col_t highlight = 0xffffffff;
+	if (value <= 0 && value >= -scale) {
+		int part = 255 * (value / scale);
+		return pax_col_lerp(part, normal, highlight);
+	} else if (value >= 0 && value <= scale) {
+		int part = 255 * (value / -scale);
+		return pax_col_lerp(part, normal, highlight);
+	} else {
+		return normal;
 	}
 }
 
@@ -143,7 +182,7 @@ void pax_techdemo_init(pax_buf_t *framebuffer, pax_buf_t *clipbuffer) {
 // Draws some title text on the clip buffer.
 // If there's multiple lines (split by '\n'), that's the subtitle.
 // Text is horizontally as wide as possible and vertically centered.
-static void td_draw_title(void *args) {
+static void td_draw_title(size_t planned_time, size_t planned_duration, void *args) {
 	char *raw        = strdup((char *) args);
 	char *index      = strchr(raw, '\n');
 	char *title;
@@ -178,13 +217,13 @@ static void td_draw_title(void *args) {
 	}
 }
 
-static td_lerp_t *lerps = NULL;
-
 // Linearly interpolate a variable.
-static void td_add_lerp(void *args) {
+static void td_add_lerp(size_t planned_time, size_t planned_duration, void *args) {
 	td_lerp_t *lerp = args;
-	lerp->prev = NULL;
-	lerp->next = lerps;
+	lerp->start = planned_time;
+	lerp->end   = lerp->duration + planned_time;
+	lerp->prev  = NULL;
+	lerp->next  = lerps;
 	if (lerps) {
 		lerps->prev = lerp;
 	}
@@ -192,9 +231,11 @@ static void td_add_lerp(void *args) {
 }
 
 // Perform aforementioned interpolation.
-static bool td_perform_lerp(td_lerp_t *lerp) {
+static void td_perform_lerp(td_lerp_t *lerp) {
 	float part = (current_time - lerp->start) / (float) (lerp->end - lerp->start);
-	if (current_time >= lerp->end) {
+	if (current_time <= lerp->start) {
+		part = 0.0;
+	} else if (current_time >= lerp->end) {
 		part = 1.0;
 	} else {
 		switch (lerp->timing) {
@@ -220,13 +261,17 @@ static bool td_perform_lerp(td_lerp_t *lerp) {
 			*lerp->float_ptr = lerp->float_from + (lerp->float_to - lerp->float_from) * part;
 			break;
 	}
-	return current_time >= lerp->end;
 }
 
 // Set a variable of a primitive type.
-static void td_set_var(void *args) {
+static void td_set_var(size_t planned_time, size_t planned_duration, void *args) {
 	td_set_t *set = (td_set_t *) args;
-	memcpy(set->pointer, &set->value, set->size);
+	memcpy(set->pointer, (void *) &set->value, set->size);
+}
+
+// Set THE string.
+static void td_set_str(size_t planned_time, size_t planned_duration, void *args) {
+	text_str = (char *) args;
 }
 
 /* =============== drawing ================ */
@@ -259,6 +304,17 @@ static void td_draw_shapes() {
 }
 
 // Draws a funny spedometer.
+static void td_draw_shimmer() {
+	pax_apply_2d(buffer, matrix_2d_translate(width * 0.5, height * 0.5));
+	pax_shader_t shader = {
+		.callback          = td_shader_shimmer,
+		.alpha_promise_0   = false,
+		.alpha_promise_255 = true
+	};
+	pax_shade_rect(buffer, -1, &shader, NULL, -50, -50, 100, 100);
+}
+
+// Draws a funny spedometer.
 static void td_draw_speed() {
 	
 }
@@ -268,127 +324,99 @@ static void td_draw_speed() {
 	Goal:
 	Show off PAX' features while hiding performance limitations.
 	Features to show (in no particular order):
-	  - Triangles
-	  - Arcs and circles
+	  ✓ Triangles
+	  - Arcs
+	  ✓ Circles
 	  - Clipping
-	  - Advanced shaders
+	  ✓ Advanced shaders
 	  - Texure mapping
 	Relevant notes:
 	  - MCH2022 sponsors should probably go here, before the demo.
 	  - There should be an always present "skip" option (except sponsors maybe).
-	
-	Visual timeline:
-	Start   End     Event
-	0s      1.5s    Fade from white to a trasparent title text.
-	1.5s    4s      Fade away title text, revealing the animation below.
-	
-	4s				Start spinning a triangle, a circle and a square on the horizontal center line.
-	5s      8s      Show text stating something about optimisations.
-	
-	Technical timeline:
-	Time        Event
-	000.000     Render title "MCH2022", subtitle "gfx tech demo" on the clip buffer.
-	  0.000     Fade palette color 0: 0s (white) -> 1.5s (clip).
-	  1.500     Fade palette color 1: 1.5s (clip) -> 3.9s (fade in).
-	  3.900     Remove the overlay text.
-	  4.000     Start spinning the shapes.
-	  6.000     Start orbiting the shapes.
-	  8.000     Start zooming in on the circle.
-	  8.000     Fade the background to red.
-	 10.000     Demo ends.
 */
 
-#define TD_DRAW_TITLE(title, subtitle) .callback=td_draw_title,.callback_args=title"\n"subtitle
-#define TD_INTERP_INT(start_time, end_time, timing_func, variable, from, to) \
-		.callback = td_add_lerp,\
-		.callback_args = &(td_lerp_t){\
-			.start    =  start_time,\
-			.end      =  end_time,\
-			.int_ptr  = (int *) &(variable),\
-			.int_from = (from),\
-			.int_to   = (to),\
-			.type     =  TD_INTERP_TYPE_INT,\
-			.timing   =  timing_func\
+#define TD_DELAY(time) {.duration=time,.callback=NULL}
+#define TD_DRAW_TITLE(title, subtitle) {.duration=0,.callback=td_draw_title,.callback_args=title"\n"subtitle}
+#define TD_INTERP_INT(delay_time, interp_time, timing_func, variable, from, to) {\
+			.duration = delay_time,\
+			.callback = td_add_lerp,\
+			.callback_args = &(td_lerp_t){\
+				.duration = interp_time,\
+				.int_ptr  = (int *) &(variable),\
+				.int_from = (from),\
+				.int_to   = (to),\
+				.type     =  TD_INTERP_TYPE_INT,\
+				.timing   =  timing_func\
+			}\
 		}
-#define TD_INTERP_COL(start_time, end_time, timing_func, variable, from, to) \
-		.callback = td_add_lerp,\
-		.callback_args = &(td_lerp_t){\
-			.start    =  start_time,\
-			.end      =  end_time,\
-			.int_ptr  = (int *) &(variable),\
-			.int_from = (from),\
-			.int_to   = (to),\
-			.type     =  TD_INTERP_TYPE_COL,\
-			.timing   =  timing_func\
+#define TD_INTERP_COL(delay_time, interp_time, timing_func, variable, from, to) {\
+			.duration = delay_time,\
+			.callback = td_add_lerp,\
+			.callback_args = &(td_lerp_t){\
+				.duration = interp_time,\
+				.int_ptr  = (int *) &(variable),\
+				.int_from = (from),\
+				.int_to   = (to),\
+				.type     =  TD_INTERP_TYPE_COL,\
+				.timing   =  timing_func\
+			}\
 		}
-#define TD_INTERP_FLOAT(start_time, end_time, timing_func, variable, from, to) \
-		.callback = td_add_lerp,\
-		.callback_args = &(td_lerp_t){\
-			.start      =  start_time,\
-			.end        =  end_time,\
-			.float_ptr  = (float *) &(variable),\
-			.float_from = (from),\
-			.float_to   = (to),\
-			.type       =  TD_INTERP_TYPE_FLOAT,\
-			.timing     =  timing_func\
+#define TD_INTERP_FLOAT(delay_time, interp_time, timing_func, variable, from, to) {\
+			.duration = delay_time,\
+			.callback = td_add_lerp,\
+			.callback_args = &(td_lerp_t){\
+				.duration   = interp_time,\
+				.float_ptr  = (float *) &(variable),\
+				.float_from = (from),\
+				.float_to   = (to),\
+				.type       =  TD_INTERP_TYPE_FLOAT,\
+				.timing     =  timing_func\
+			}\
 		}
-#define TD_SET_0(type_size, variable, new_value) \
-		.callback = td_set_var,\
-		.callback_args = &(td_set_t){\
-			.size    = (type_size),\
-			.pointer = (void *) &(variable),\
-			.value   = (uint64_t) (new_value)\
+#define TD_SET_0(type_size, variable, new_value) {\
+			.duration = 0,\
+			.callback = td_set_var,\
+			.callback_args = &(td_set_t){\
+				.size     = (type_size),\
+				.pointer  = (void *) &(variable),\
+				.value    = (new_value)\
+			}\
 		}
 #define TD_SET_BOOL(variable, value) TD_SET_0(sizeof(bool), variable, value)
-#define TD_SET_STR(variable, value) TD_SET_0(sizeof(char *), variable, value)
 #define TD_SET_INT(variable, value) TD_SET_0(sizeof(int), variable, value)
 #define TD_SET_LONG(variable, value) TD_SET_0(sizeof(long), variable, value)
-#define TD_SET_FLOAT(variable, new_value) \
-		.callback = td_set_var,\
-		.callback_args = &(td_set_t){\
-			.size    = sizeof(float),\
-			.pointer = (void *) &(variable),\
-			.f_value = (new_value)\
+#define TD_SET_FLOAT(variable, value) TD_SET_0(sizeof(float), variable, value)
+#define TD_SET_STR(value) {\
+			.duration = 0,\
+			.callback = td_set_str,\
+			.callback_args = (value)\
 		}
 
 static td_event_t events[] = {
-	{
-		// Prerender some text.
-		.time = 0,
-		TD_DRAW_TITLE("MCH2022", "graphics tech demo")
-	}, {
-		// Fade out a cutout.
-		.time = 0,
-		TD_INTERP_COL(   0, 1500, TD_LINEAR, palette[0], 0xffffffff, 0)
-	}, {
-		// Fade out the remaining overlay.
-		.time = 1500,
-		TD_INTERP_COL(1500, 3900, TD_LINEAR, palette[1], 0xffffffff, 0)
-	}, {
-		// Remove the overlay.
-		.time = 3900,
-		TD_SET_BOOL(overlay_clip, false)
-	}, {
-		// Start spinning the shapes.
-		.time = 4000,
-		TD_INTERP_FLOAT(4000, 8000, TD_EASE, angle_0, 0, M_PI*3)
-	}, {
-		// Start orbits.
-		.time = 6000,
-		TD_INTERP_FLOAT(6000, 10000, TD_EASE_IN, angle_1, 0, M_PI*2)
-	}, {
-		// Zoom in on the circle.
-		.time = 8000,
-		TD_INTERP_FLOAT(8000, 10000, TD_EASE_IN, buffer_scaling, 1, 3)
-	}, {
-		// And fade the background to red.
-		.time = 8000,
-		TD_INTERP_COL(8000, 10000, TD_EASE_IN, background_color, 0, 0xffff0000)
-	}, {
-		// Final event: marks the end.
-		.time = 10000,
-		.callback = NULL
-	}
+	// Prerender some text.
+	TD_DRAW_TITLE  ("MCH2022", "graphics tech demo"),
+	// Fade out a cutout.
+	TD_INTERP_COL  (1500, 1500, TD_LINEAR, palette[0], 0xffffffff, 0),
+	TD_INTERP_COL  (2400, 2400, TD_LINEAR, palette[1], 0xffffffff, 0),
+	TD_SET_BOOL    (overlay_clip, false),
+	
+	// Start spinning the shapes.
+	TD_INTERP_FLOAT(2000, 4000, TD_EASE, angle_0, 0, M_PI*3),
+	TD_INTERP_FLOAT(2000, 4000, TD_EASE_IN, angle_1, 0, M_PI*2),
+	
+	// Zoom in on the circle.
+	TD_INTERP_FLOAT(   0, 2000, TD_EASE_IN, buffer_scaling, 1, 3),
+	TD_INTERP_COL  (2500, 2000, TD_EASE_IN, background_color, 0, 0xffff0000),
+	
+	// Show the shimmer effect.
+	TD_SET_INT     (to_draw, TD_DRAW_SHIMMER),
+	TD_SET_BOOL    (use_background, false),
+	TD_INTERP_FLOAT( 500,  500, TD_EASE_OUT, buffer_scaling, 0.00001, 1),
+	TD_INTERP_FLOAT(1000, 1000, TD_EASE, angle_0, 0, 1),
+	TD_SET_BOOL    (use_background, true),
+	
+	// Mark the end.
+	TD_DELAY       (   0),
 };
 static size_t n_events = sizeof(events) / sizeof(td_event_t);
 
@@ -406,16 +434,29 @@ bool pax_techdemo_draw(size_t now) {
 	bool finished = false;
 	current_time = now;
 	
+	// Perform interpolations.
+	td_lerp_t *lerp = lerps;
+	while (lerp) {
+		bool remove = lerp->end <= current_time;
+		if (remove) {
+			if (lerp->prev) lerp->prev->next = lerp->next;
+			else lerps = lerp->next;
+			if (lerp->next) lerp->next->prev = lerp->prev;
+		}
+		lerp = lerp->next;
+	}
+	
 	// Handle events.
 	if (current_event < n_events) {
-		while (current_event < n_events && events[current_event].time <= now) {
+		while (current_event < n_events && planned_time <= now) {
 			td_event_t event = events[current_event];
 			if (event.callback) {
 				ESP_LOGI(TAG, "Performing event %d.", current_event);
-				event.callback(event.callback_args);
+				event.callback(planned_time, event.duration, event.callback_args);
 			} else {
 				ESP_LOGI(TAG, "Skipping event %d.", current_event);
 			}
+			planned_time += event.duration;
 			current_event ++;
 		}
 	} else {
@@ -423,14 +464,9 @@ bool pax_techdemo_draw(size_t now) {
 	}
 	
 	// Perform interpolations.
-	td_lerp_t *lerp = lerps;
+	lerp = lerps;
 	while (lerp) {
-		bool remove = td_perform_lerp(lerp);
-		if (remove) {
-			if (lerp->prev) lerp->prev->next = lerp->next;
-			else lerps = lerp->next;
-			if (lerp->next) lerp->next->prev = lerp->prev;
-		}
+		td_perform_lerp(lerp);
 		lerp = lerp->next;
 	}
 	
@@ -447,6 +483,9 @@ bool pax_techdemo_draw(size_t now) {
 		case TD_DRAW_SHAPES:
 			td_draw_shapes();
 			break;
+		case TD_DRAW_SHIMMER:
+			td_draw_shimmer();
+			break;
 		case TD_DRAW_SPEED:
 			td_draw_speed();
 			break;
@@ -454,12 +493,15 @@ bool pax_techdemo_draw(size_t now) {
 	
 	pax_pop_2d(buffer);
 	
+	// Text.
+	pax_draw_text(buffer, text_col, PAX_FONT_DEFAULT, text_size, 0, 0, text_str);
+	
 	// The funny text clippening.
 	if (overlay_clip) {
 		pax_push_2d(buffer);
 		pax_apply_2d(buffer, matrix_2d_scale(clip_scaling, clip_scaling));
 		pax_apply_2d(buffer, matrix_2d_translate(clip_pan_x * width, clip_pan_y * height));
-		pax_shade_rect(buffer, -1, &PAX_SHADER_TEXTURE(clip_buffer), NULL, 0, 0, width-1, height-1);
+		pax_shade_rect(buffer, -1, &PAX_SHADER_TEXTURE(clip_buffer), NULL, 0, 0, width, height);
 		pax_pop_2d(buffer);
 	}
 	
