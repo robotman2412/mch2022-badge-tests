@@ -16,11 +16,12 @@ extern "C" {
 #define TD_DRAW_NONE    0
 #define TD_DRAW_SHAPES  1
 #define TD_DRAW_SHIMMER 2
-#define TD_DRAW_SPEED   3
+#define TD_DRAW_TRIS    3
 
-#define TD_INTERP_TYPE_INT 0
-#define TD_INTERP_TYPE_COL 1
-#define TD_INTERP_TYPE_FLOAT 2
+#define TD_INTERP_TYPE_INT   0
+#define TD_INTERP_TYPE_COL   1
+#define TD_INTERP_TYPE_HSV   2
+#define TD_INTERP_TYPE_FLOAT 3
 #define TD_LINEAR 0
 #define TD_EASE 1
 #define TD_EASE_IN 2

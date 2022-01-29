@@ -251,11 +251,16 @@ static void td_perform_lerp(td_lerp_t *lerp) {
 		}
 	}
 	switch (lerp->type) {
+		uint32_t bleh;
 		case TD_INTERP_TYPE_INT:
 			*lerp->int_ptr = lerp->int_from + (lerp->int_to - lerp->int_from) * part;
 			break;
 		case TD_INTERP_TYPE_COL:
 			*lerp->int_ptr = pax_col_lerp(part*255, lerp->int_from, lerp->int_to);
+			break;
+		case TD_INTERP_TYPE_HSV:
+			bleh = pax_col_lerp(part*255, lerp->int_from, lerp->int_to);
+			*lerp->int_ptr = pax_col_ahsv(bleh >> 24, bleh >> 16, bleh >> 8, bleh);
 			break;
 		case TD_INTERP_TYPE_FLOAT:
 			*lerp->float_ptr = lerp->float_from + (lerp->float_to - lerp->float_from) * part;
@@ -303,7 +308,7 @@ static void td_draw_shapes() {
 	pax_draw_tri(buffer, col, -my_cos, -my_sin, -my_cos, my_sin, 1, 0);
 }
 
-// Draws a funny spedometer.
+// Draws a funny shimmer.
 static void td_draw_shimmer() {
 	pax_apply_2d(buffer, matrix_2d_translate(width * 0.5, height * 0.5));
 	pax_shader_t shader = {
@@ -314,9 +319,11 @@ static void td_draw_shimmer() {
 	pax_shade_rect(buffer, -1, &shader, NULL, -50, -50, 100, 100);
 }
 
-// Draws a funny spedometer.
-static void td_draw_speed() {
-	
+// Morph yellow cube to circle, then circle to triange outlines.
+static void td_draw_tris() {
+	if (angle_0 < 1) {
+		// Yellow cube to circle.
+	}
 }
 
 /* ============= choreography ============= */
@@ -361,6 +368,18 @@ static void td_draw_speed() {
 				.timing   =  timing_func\
 			}\
 		}
+#define TD_INTERP_AHSV(delay_time, interp_time, timing_func, variable, from, to) {\
+			.duration = delay_time,\
+			.callback = td_add_lerp,\
+			.callback_args = &(td_lerp_t){\
+				.duration = interp_time,\
+				.int_ptr  = (int *) &(variable),\
+				.int_from = (from),\
+				.int_to   = (to),\
+				.type     =  TD_INTERP_TYPE_HSV,\
+				.timing   =  timing_func\
+			}\
+		}
 #define TD_INTERP_FLOAT(delay_time, interp_time, timing_func, variable, from, to) {\
 			.duration = delay_time,\
 			.callback = td_add_lerp,\
@@ -391,16 +410,21 @@ static void td_draw_speed() {
 			.callback = td_set_str,\
 			.callback_args = (value)\
 		}
+#define TD_SHOW_TEXT(str) \
+		TD_SET_STR(str),\
+		TD_INTERP_COL(0, 2500, TD_EASE_IN, text_col, 0xffffffff, 0x00ffffff)
 
 static td_event_t events[] = {
 	// Prerender some text.
 	TD_DRAW_TITLE  ("MCH2022", "graphics tech demo"),
+	
 	// Fade out a cutout.
 	TD_INTERP_COL  (1500, 1500, TD_LINEAR, palette[0], 0xffffffff, 0),
 	TD_INTERP_COL  (2400, 2400, TD_LINEAR, palette[1], 0xffffffff, 0),
 	TD_SET_BOOL    (overlay_clip, false),
 	
 	// Start spinning the shapes.
+	TD_SHOW_TEXT   ("2D transformations"),
 	TD_INTERP_FLOAT(2000, 4000, TD_EASE, angle_0, 0, M_PI*3),
 	TD_INTERP_FLOAT(2000, 4000, TD_EASE_IN, angle_1, 0, M_PI*2),
 	
@@ -409,11 +433,21 @@ static td_event_t events[] = {
 	TD_INTERP_COL  (2500, 2000, TD_EASE_IN, background_color, 0, 0xffff0000),
 	
 	// Show the shimmer effect.
+	TD_SHOW_TEXT   ("Shader support"),
 	TD_SET_INT     (to_draw, TD_DRAW_SHIMMER),
 	TD_SET_BOOL    (use_background, false),
 	TD_INTERP_FLOAT( 500,  500, TD_EASE_OUT, buffer_scaling, 0.00001, 1),
 	TD_INTERP_FLOAT(1000, 1000, TD_EASE, angle_0, 0, 1),
+	TD_DELAY       ( 500),
 	TD_SET_BOOL    (use_background, true),
+	TD_DELAY       ( 500),
+	
+	// Fade out.
+	TD_INTERP_FLOAT( 500,  500, TD_EASE_OUT, buffer_scaling, 1, 0.00001),
+	TD_SHOW_TEXT   ("Colorful"),
+	TD_SET_INT     (to_draw, TD_DRAW_NONE),
+	TD_INTERP_AHSV (2000, 2000, TD_EASE_IN,  background_color, 0xff00ffff, 0xffffffff),
+	TD_INTERP_AHSV (2000, 2000, TD_EASE_OUT, background_color, 0xff00ffff, 0xffff00ff),
 	
 	// Mark the end.
 	TD_DELAY       (   0),
@@ -439,6 +473,9 @@ bool pax_techdemo_draw(size_t now) {
 	while (lerp) {
 		bool remove = lerp->end <= current_time;
 		if (remove) {
+			// Perform the final frame before removing it.
+			td_perform_lerp(lerp);
+			// Unlink it.
 			if (lerp->prev) lerp->prev->next = lerp->next;
 			else lerps = lerp->next;
 			if (lerp->next) lerp->next->prev = lerp->prev;
@@ -486,8 +523,8 @@ bool pax_techdemo_draw(size_t now) {
 		case TD_DRAW_SHIMMER:
 			td_draw_shimmer();
 			break;
-		case TD_DRAW_SPEED:
-			td_draw_speed();
+		case TD_DRAW_TRIS:
+			td_draw_tris();
 			break;
 	}
 	

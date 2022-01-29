@@ -165,45 +165,45 @@ void app_main() {
 		ESP_LOGE(TAG, "Framebuffer creation failed.");
 		return;
 	}
-	// pax_buf_t clip;
-	// ESP_LOGI(TAG, "Creating clip buffer.");
-	// pax_buf_init(&clip, NULL, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_TD_BUF_TYPE);
-	// if (pax_last_error) {
-	// 	ESP_LOGE(TAG, "Clip buffer creation failed.");
-	// 	return;
-	// }
+	pax_buf_t clip;
+	ESP_LOGI(TAG, "Creating clip buffer.");
+	pax_buf_init(&clip, NULL, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_TD_BUF_TYPE);
+	if (pax_last_error) {
+		ESP_LOGE(TAG, "Clip buffer creation failed.");
+		return;
+	}
 	
-	// pax_techdemo_init(&buf, &clip);
-	// uint64_t start = esp_timer_get_time() / 1000;
-	// char text_buf[32];
-	// while (1) {
-	// 	uint64_t pre = esp_timer_get_time();
-	// 	uint64_t now = esp_timer_get_time() / 1000 - start;
-	// 	bool fin = pax_techdemo_draw(now);
-	// 	uint64_t post = esp_timer_get_time();
-	// 	int fps = 1000000 / (post - pre);
-	// 	snprintf(text_buf, 31, "%d FPS", fps);
-	// 	pax_vec1_t text_size = pax_text_size(PAX_FONT_DEFAULT, 9, text_buf);
-	// 	pax_draw_text(&buf, -1, PAX_FONT_DEFAULT, 9, buf.width - text_size.x - 1, 0, text_buf);
+	pax_techdemo_init(&buf, &clip);
+	uint64_t start = esp_timer_get_time() / 1000;
+	uint64_t last_time = start;
+	char text_buf[32];
+	while (1) {
+		uint64_t now = esp_timer_get_time() / 1000 - start;
+		bool fin = pax_techdemo_draw(now);
+		int fps = 1000 / (now - last_time);
+		snprintf(text_buf, 31, "%d FPS", fps);
+		pax_vec1_t text_size = pax_text_size(PAX_FONT_DEFAULT, 9, text_buf);
+		pax_draw_text(&buf, -1, PAX_FONT_DEFAULT, 9, buf.width - text_size.x - 1, 0, text_buf);
 		
-	// 	if (ili9341_write(&display, framebuffer)) {
-	// 		ESP_LOGE(TAG, "Display write failed.");
-	// 		vTaskDelay(3000 / portTICK_PERIOD_MS);
-	// 		esp_restart();
-	// 	}
-	// 	if (fin) {
-	// 		vTaskDelay(5000 / portTICK_PERIOD_MS);
-	// 		pax_techdemo_init(&buf, &clip);
-	// 		start = esp_timer_get_time() / 1000;
-	// 	}
-	// }
-	// return;
+		if (ili9341_write(&display, framebuffer)) {
+			ESP_LOGE(TAG, "Display write failed.");
+			vTaskDelay(3000 / portTICK_PERIOD_MS);
+			esp_restart();
+		}
+		if (fin) {
+			vTaskDelay(1000 / portTICK_PERIOD_MS);
+			pax_techdemo_init(&buf, &clip);
+			start = esp_timer_get_time() / 1000;
+		}
+		last_time = now;
+	}
+	return;
 	
 	pax_buf_t png_test_buf;
-	FILE *png_fd = xopenmem(png_test_png, png_test_png_len);
-	pax_decode_png(&png_test_buf, png_fd, PAX_BUF_32_8888ARGB);
-	pax_background(&png_test_buf, 0);
-	xclose(png_fd);
+	// FILE *png_fd = xopenmem(png_test_png, png_test_png_len);
+	// pax_decode_png(&png_test_buf, png_fd, PAX_BUF_32_8888ARGB);
+	// pax_background(&png_test_buf, 0);
+	// xclose(png_fd);
 	
 	// pax_debug(&conv);
 	
