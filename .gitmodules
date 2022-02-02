@@ -10,3 +10,6 @@
 [submodule "graphics_test/components/pax-codecs"]
 	path = graphics_test/components/pax-codecs
 	url = https://github.com/robotman2412/pax-codecs
+[submodule "graphics_test/components/esp32-component-spi-ice40"]
+	path = graphics_test/components/esp32-component-spi-ice40
+	url = https://github.com/Nicolai-Electronics/esp32-component-spi-ice40
