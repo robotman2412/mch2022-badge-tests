@@ -28,17 +28,33 @@
 
 #include "techdemo.h"
 
-// Configuration.
-#define SPI_MOSI 12
-#define SPI_MISO 13
-#define SPI_SCLK 21
+// Prototype configuration.
+#define SPI_SCLK         18
+#define SPI_MOSI         23
+#define SPI_MISO         35
+#define SPI_CS_STM32     19
+#define SPI_CS_FPGA      27
+#define SPI_CS_LCD       32
+#define SPI_DC_LCD       33
+#define SPI_BUS          VSPI_HOST
 #define SPI_MAX_TRANSFER 4094
-#define SPI_BUS ((spi_host_device_t) 2) //VSPI_HOST
-#define SPI_DMA_CH 2
+#define SPI_DMA_CH       2
 
-#define DISPLAY_RST 4
-#define DISPLAY_CS 16
-#define DISPLAY_DCX 17
+#define DISPLAY_RST     -1
+#define DISPLAY_CS       SPI_CS_LCD
+#define DISPLAY_DCX      SPI_DC_LCD
+
+// DIY configuration.
+// #define SPI_MOSI 12
+// #define SPI_MISO 13
+// #define SPI_SCLK 21
+// #define SPI_MAX_TRANSFER 4094
+// #define SPI_BUS ((spi_host_device_t) 2) //VSPI_HOST
+// #define SPI_DMA_CH 2
+
+// #define DISPLAY_RST 4
+// #define DISPLAY_CS 16
+// #define DISPLAY_DCX 17
 
 #include "../components/pax-graphics/test-images/empty.c"
 
