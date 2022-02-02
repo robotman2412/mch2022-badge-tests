@@ -437,10 +437,8 @@ static td_event_t events[] = {
 	TD_SET_INT     (to_draw, TD_DRAW_SHIMMER),
 	TD_SET_BOOL    (use_background, false),
 	TD_INTERP_FLOAT( 500,  500, TD_EASE_OUT, buffer_scaling, 0.00001, 1),
-	TD_INTERP_FLOAT(1000, 1000, TD_EASE, angle_0, 0, 1),
-	TD_DELAY       ( 500),
+	TD_INTERP_FLOAT(1500, 1500, TD_EASE, angle_0, 0, 1),
 	TD_SET_BOOL    (use_background, true),
-	TD_DELAY       ( 500),
 	
 	// Fade out.
 	TD_INTERP_FLOAT( 500,  500, TD_EASE_OUT, buffer_scaling, 1, 0.00001),
@@ -531,7 +529,10 @@ bool pax_techdemo_draw(size_t now) {
 	pax_pop_2d(buffer);
 	
 	// Text.
-	pax_draw_text(buffer, text_col, PAX_FONT_DEFAULT, text_size, 0, 0, text_str);
+	pax_col_t text_col_merged = pax_col_merge(background_color, text_col);
+	if (text_col_merged != background_color) {
+		pax_draw_text(buffer, text_col_merged, PAX_FONT_DEFAULT, text_size, 0, 0, text_str);
+	}
 	
 	// The funny text clippening.
 	if (overlay_clip) {
