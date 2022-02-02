@@ -1,4 +1,4 @@
 #!/bin/bash
 
 cd "$FIRMWARE_PATH"
-idf.py flash && screen /dev/ttyUSB* 115200
+idf.py -p "$PORT" flash && screen "$PORT" 115200

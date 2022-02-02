@@ -4,3 +4,4 @@ source esp-idf/export.sh
 
 export FIRMWARE_PATH="$(pwd)/graphics_test"
 export PATH="$PATH:$(pwd)"
+export PORT="/dev/ttyASM0"
