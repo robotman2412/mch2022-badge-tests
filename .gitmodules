@@ -13,3 +13,6 @@
 [submodule "graphics_test/components/esp32-component-spi-ice40"]
 	path = graphics_test/components/esp32-component-spi-ice40
 	url = https://github.com/Nicolai-Electronics/esp32-component-spi-ice40
+[submodule "graphics_test/components/esp32-component-i2c-pca9555"]
+	path = graphics_test/components/esp32-component-i2c-pca9555
+	url = https://github.com/Nicolai-Electronics/esp32-component-i2c-pca9555
