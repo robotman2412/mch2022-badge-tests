@@ -11,6 +11,17 @@
 #include <freertos/task.h>
 #include <driver/uart.h>
 #include <esp_timer.h>
+#include <driver/spi_master.h>
+#include <driver/gpio.h>
+#include <esp_pm.h>
+
+#include <managed_i2c.h>
+
+// I/O expander.
+#include <pca9555.h>
+
+// FPGA.
+#include <ice40.h>
 
 // Screen.
 #include <driver/spi_master.h>
@@ -44,6 +55,36 @@
 #define DISPLAY_CS       SPI_CS_LCD
 #define DISPLAY_DCX      SPI_DC_LCD
 
+// Interrupts
+#define GPIO_INT_STM32   0
+#define GPIO_INT_PCA9555 34
+#define GPIO_INT_BNO055  36
+#define GPIO_INT_FPGA    39
+
+// System I2C bus
+#define GPIO_I2C_SYS_SCL 21
+#define GPIO_I2C_SYS_SDA 22
+#define I2C_BUS_SYS      0
+#define I2C_SPEED_SYS    20000 // 20 kHz
+
+// PCA9555 IO expander
+#define PCA9555_ADDR              0x26
+#define PCA9555_PIN_STM32_RESET   0
+#define PCA9555_PIN_STM32_BOOT0   1
+#define PCA9555_PIN_FPGA_RESET    2
+#define PCA9555_PIN_FPGA_CDONE    3
+#define PCA9555_PIN_BTN_START     5
+#define PCA9555_PIN_BTN_SELECT    6
+#define PCA9555_PIN_BTN_MENU      7
+#define PCA9555_PIN_BTN_HOME      8
+#define PCA9555_PIN_BTN_JOY_LEFT  9
+#define PCA9555_PIN_BTN_JOY_PRESS 10
+#define PCA9555_PIN_BTN_JOY_DOWN  11
+#define PCA9555_PIN_BTN_JOY_UP    12
+#define PCA9555_PIN_BTN_JOY_RIGHT 13
+#define PCA9555_PIN_BTN_BACK      14
+#define PCA9555_PIN_BTN_ACCEPT    15
+
 // DIY configuration.
 // #define SPI_MOSI 12
 // #define SPI_MISO 13
@@ -56,11 +97,13 @@
 // #define DISPLAY_CS 16
 // #define DISPLAY_DCX 17
 
-#include "../components/pax-graphics/test-images/empty.c"
+// #include "../components/pax-graphics/test-images/empty.c"
+#include "../fpga/fpga_test.h"
 
-ILI9341 display;
+PCA9555 dev_pca9555 = {0};
+ICE40   dev_ice40 = {0};
+ILI9341 display = {0};
 
-#include <esp_vfs_fat.h>
 unsigned char png_test_png[] = {
 	0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
 	0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x0a,
@@ -100,14 +143,29 @@ unsigned char png_test_png[] = {
 size_t png_test_png_len = 399;
 
 uint8_t framebuffer[ILI9341_BUFFER_SIZE];
+// uint8_t *framebuffer = NULL;
 
 static const char *TAG = "main";
 
+// Wrapper functions for linking the ICE40 component to the PCA9555 component
+esp_err_t ice40_get_done_wrapper(bool* done) { return pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_CDONE, done); }
+esp_err_t ice40_set_reset_wrapper(bool reset) { return pca9555_set_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_RESET, reset); }
 
 void app_main() {
 	
 	// Let's see.
 	printf("I booted!\n");
+	
+	vTaskDelay(5000 / portTICK_PERIOD_MS);
+	
+	esp_err_t res = 0;
+	
+    // Interrupts
+    res = gpio_install_isr_service(0);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Initializing ISR service failed");
+		esp_restart();
+    }
 	
 	// Initialise SPI bus.
 	spi_bus_config_t spiConfig = {
@@ -124,6 +182,77 @@ void app_main() {
 	} else {
 		ESP_LOGI(TAG, "SPI bus initialised.");
 	}
+	
+	res = i2c_init(I2C_BUS_SYS, GPIO_I2C_SYS_SDA, GPIO_I2C_SYS_SCL, I2C_SPEED_SYS, false, false);
+	if (res != ESP_OK) {
+		ESP_LOGE(TAG, "Initializing system I2C bus failed.");
+		esp_restart();
+	} else {
+		ESP_LOGI(TAG, "I2C initialised.");
+	}
+	
+	// Initialise PCA9555.
+	res = pca9555_init(&dev_pca9555, I2C_BUS_SYS, PCA9555_ADDR, GPIO_INT_PCA9555);
+	if (res != ESP_OK) {
+		ESP_LOGE(TAG, "Initializing PCA9555 failed.");
+		esp_restart();
+	} else {
+		ESP_LOGI(TAG, "PCA9555 initialised.");
+	}
+	
+	res = pca9555_set_gpio_direction(&dev_pca9555, PCA9555_PIN_FPGA_RESET, true);
+	if (res != ESP_OK) {
+		ESP_LOGE(TAG, "Setting the FPGA reset pin on the PCA9555 to output failed");
+		esp_restart();
+	}
+	
+	res = pca9555_set_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_RESET, false);
+	if (res != ESP_OK) {
+		ESP_LOGE(TAG, "Setting the FPGA reset pin on the PCA9555 to low failed");
+		esp_restart();
+	}
+	
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_START, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_SELECT, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_MENU, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_HOME, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_LEFT, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_PRESS, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_DOWN, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_UP, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_RIGHT, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_BACK, true);
+	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_ACCEPT, true);
+	
+	// Reset all pin states so that the interrupt function doesn't trigger all the handlers because we inverted the polarity.
+	dev_pca9555.pin_state = 0;
+	
+	// Initialise FPGA.
+	dev_ice40.spi_bus = SPI_BUS;
+	dev_ice40.pin_cs = SPI_CS_FPGA;
+	dev_ice40.pin_done = -1;
+	dev_ice40.pin_reset = -1;
+	dev_ice40.pin_int = GPIO_INT_FPGA;
+	dev_ice40.spi_speed = 23000000; // 23MHz
+	dev_ice40.spi_max_transfer_size = SPI_MAX_TRANSFER;
+	dev_ice40.get_done = ice40_get_done_wrapper;
+	dev_ice40.set_reset = ice40_set_reset_wrapper;
+	
+	res = ice40_init(&dev_ice40);
+	if (res != ESP_OK) {
+		ESP_LOGE(TAG, "Initializing FPGA failed.");
+		esp_restart();
+	} else {
+		ESP_LOGI(TAG, "FPGA initialised.");
+	}
+	
+	// res = ice40_load_bitstream(&dev_ice40, fpga_test_bin, fpga_test_bin_len);
+	// if (res != ESP_OK) {
+	// 	ESP_LOGE(TAG, "Writing bitstream failed.");
+	// 	esp_restart();
+	// } else {
+	// 	ESP_LOGI(TAG, "Bitstream written.");
+	// }
 	
 	// Initialise display.
 	display.spi_bus    = SPI_BUS;
@@ -150,29 +279,6 @@ void app_main() {
 	// image.pallette = pallette_test_pal;
 	// image.pallette_size = sizeof(pallette_test_pal) / sizeof(pax_col_t);
 	
-	// Mount FATFS.
-	// ESP_LOGI(TAG, "Mounting filesystem.");
-	// FATFS *lolwut;
-	// // esp_err_t fatty = esp_vfs_fat_register("/__spiflash", "", 10, &lolwut);
-	// esp_vfs_fat_mount_config_t fatty_config = {
-	// 	.format_if_mount_failed = true,
-	// 	.allocation_unit_size = CONFIG_WL_SECTOR_SIZE,
-	// 	.max_files = 20
-	// };
-	// wl_handle_t myhandle = WL_INVALID_HANDLE;
-	// esp_err_t fatty = esp_vfs_fat_spiflash_mount("/__spiflash", "storage", &fatty_config, &myhandle);
-	// if (fatty) {
-	// 	ESP_LOGE(TAG, "FATFS error 0x%x", fatty);
-	// 	return;
-	// }
-	
-	// Todo: Create file of memory.
-	// FILE *fd = fopen("/__spiflash/test_img.png", "w+");
-	// ESP_LOGW(TAG, "lmao is %p", fd);
-	// fwrite(png_test_png, 1, png_test_png_len, fd);
-	// fseek(fd, 0, SEEK_SET);
-	// pax_decode_png(&dummy, fd, PAX_BUF_1_GREY);
-	
 	// Send a test pattern.
 	ESP_LOGI(TAG, "Creating framebuffer.");
 	pax_buf_t buf;
@@ -188,11 +294,16 @@ void app_main() {
 		ESP_LOGE(TAG, "Clip buffer creation failed.");
 		return;
 	}
+	// Up the frequency.
+	esp_pm_lock_handle_t pm_lock;
+	esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, NULL, &pm_lock);
+	esp_pm_lock_acquire(pm_lock);
 	
 	pax_techdemo_init(&buf, &clip);
 	uint64_t start = esp_timer_get_time() / 1000;
 	uint64_t last_time = start;
 	char text_buf[32];
+	pax_enable_multicore(1);
 	while (1) {
 		uint64_t now = esp_timer_get_time() / 1000 - start;
 		bool fin = pax_techdemo_draw(now);
@@ -213,13 +324,17 @@ void app_main() {
 		}
 		last_time = now;
 	}
+	
+	// Cleaning.
+	esp_pm_lock_release(pm_lock);
+	esp_pm_lock_delete(pm_lock);
 	return;
 	
 	pax_buf_t png_test_buf;
-	// FILE *png_fd = xopenmem(png_test_png, png_test_png_len);
-	// pax_decode_png(&png_test_buf, png_fd, PAX_BUF_32_8888ARGB);
-	// pax_background(&png_test_buf, 0);
-	// xclose(png_fd);
+	FILE *png_fd = xopenmem(png_test_png, png_test_png_len);
+	pax_decode_png(&png_test_buf, png_fd, PAX_BUF_32_8888ARGB);
+	pax_background(&png_test_buf, 0);
+	xclose(png_fd);
 	
 	// pax_debug(&conv);
 	
@@ -237,6 +352,8 @@ void app_main() {
 	
 	// pax_background(&buf, 0xff000000);
 	pax_background(&buf, 0xffffffff);
+	
+	ESP_LOGI(TAG, "PNG is %dx%d", png_test_buf.width, png_test_buf.height);
 	
 	pax_push_2d(&buf);
 	pax_pop_2d(&buf);

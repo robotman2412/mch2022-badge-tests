@@ -311,6 +311,7 @@ static void td_draw_shapes() {
 // Draws a funny shimmer.
 static void td_draw_shimmer() {
 	pax_apply_2d(buffer, matrix_2d_translate(width * 0.5, height * 0.5));
+	pax_apply_2d(buffer, matrix_2d_rotate(angle_1));
 	pax_shader_t shader = {
 		.callback          = td_shader_shimmer,
 		.alpha_promise_0   = false,
@@ -436,7 +437,8 @@ static td_event_t events[] = {
 	TD_SHOW_TEXT   ("Shader support"),
 	TD_SET_INT     (to_draw, TD_DRAW_SHIMMER),
 	TD_SET_BOOL    (use_background, false),
-	TD_INTERP_FLOAT( 500,  500, TD_EASE_OUT, buffer_scaling, 0.00001, 1),
+	TD_INTERP_FLOAT(   0,  500, TD_EASE_OUT, buffer_scaling, 0.00001, 1),
+	TD_INTERP_FLOAT( 500,  500, TD_EASE, angle_1, M_PI*0.5, 0),
 	TD_INTERP_FLOAT(1500, 1500, TD_EASE, angle_0, 0, 1),
 	TD_SET_BOOL    (use_background, true),
 	
