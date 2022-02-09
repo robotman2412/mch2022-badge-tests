@@ -1,4 +1,4 @@
 #!/bin/bash
 
 cd "$FIRMWARE_PATH"
-idf.py -p "$PORT" flash
+make_fpga.sh && idf.py -p "$PORT" flash
