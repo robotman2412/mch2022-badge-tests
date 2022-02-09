@@ -1,7 +1,3 @@
-#
-# Yosys example Makefile
-# Paul Honig 2020
-#
 
 .PHONY: all
 all: fpga_test.h
@@ -20,7 +16,10 @@ fpga_test.txt: fpga_test.blif fpga_test_pins.pcf
 
 # Convert the .bin file to a C .h file.
 fpga_test.h: fpga_test.bin
-	xxd -i fpga_test.bin fpga_test.h
+	echo 'unsigned const char fpga_test_bin[] = {' > fpga_test.h
+	xxd -i < fpga_test.bin >> fpga_test.h
+	echo '};' >> fpga_test.h
+	echo 'unsigned int fpga_test_bin_len = sizeof(fpga_test_bin) / sizeof(unsigned char);' >> fpga_test.h
 
 # Pack the bit field file in a format that can be programmed into the FPGA
 fpga_test.bin: fpga_test.txt
@@ -32,7 +31,7 @@ flash: fpga_test.bin
 
 .PHONY: clean
 clean:
-	$(RM) -f fpga_test.blif fpga_test.txt fpga_test.ex fpga_test.bin
+	$(RM) -f fpga_test.blif fpga_test.txt fpga_test.ex fpga_test.bin fpga_test.h
 
 .PHONY: show
 show: fpga_test.blif
