@@ -303,12 +303,15 @@ void app_main() {
 	uint64_t start = esp_timer_get_time() / 1000;
 	uint64_t last_time = start;
 	char text_buf[32];
+	bool td_mcr = true;
 	pax_enable_multicore(1);
 	while (1) {
 		uint64_t now = esp_timer_get_time() / 1000 - start;
 		bool fin = pax_techdemo_draw(now);
-		int fps = 1000 / (now - last_time);
-		snprintf(text_buf, 31, "%d FPS", fps);
+		uint64_t post = esp_timer_get_time() / 1000 - start;
+		int fps_full = 1000 / (now - last_time);
+		int fps_render = 1000 / (post - now);
+		snprintf(text_buf, 31, td_mcr ? "%d/%d D" : "%d/%d S", fps_full, fps_render);
 		pax_vec1_t text_size = pax_text_size(PAX_FONT_DEFAULT, 9, text_buf);
 		pax_draw_text(&buf, -1, PAX_FONT_DEFAULT, 9, buf.width - text_size.x - 1, 0, text_buf);
 		
@@ -321,6 +324,12 @@ void app_main() {
 			vTaskDelay(1000 / portTICK_PERIOD_MS);
 			pax_techdemo_init(&buf, &clip);
 			start = esp_timer_get_time() / 1000;
+			td_mcr = !td_mcr;
+			if (td_mcr && !pax_do_multicore) {
+				pax_enable_multicore(1);
+			} else if (!td_mcr && pax_do_multicore) {
+				pax_disable_multicore();
+			}
 		}
 		last_time = now;
 	}
