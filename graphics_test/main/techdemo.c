@@ -240,13 +240,16 @@ static void td_perform_lerp(td_lerp_t *lerp) {
 	} else {
 		switch (lerp->timing) {
 			case TD_EASE_OUT:
-				part = sin(M_PI * 0.5 * part);
+				// part = sin(M_PI * 0.5 * part);
+				part = -part*part + 2*part;
 				break;
 			case TD_EASE_IN:
-				part = 1 - sin(M_PI * 0.5 * (part + 1));
+				// part = 1 - sin(M_PI * 0.5 * (part + 1));
+				part *= part;
 				break;
 			case TD_EASE:
-				part = 0.5 - 0.5 * cos(M_PI * part);
+				// part = 0.5 - 0.5 * cos(M_PI * part);
+				part = -2*part*part*part + 3*part*part;
 				break;
 		}
 	}

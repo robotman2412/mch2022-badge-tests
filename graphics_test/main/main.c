@@ -156,7 +156,7 @@ void app_main() {
 	// Let's see.
 	printf("I booted!\n");
 	
-	vTaskDelay(5000 / portTICK_PERIOD_MS);
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
 	
 	esp_err_t res = 0;
 	
