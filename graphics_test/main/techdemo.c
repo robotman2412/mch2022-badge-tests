@@ -234,21 +234,23 @@ static void td_add_lerp(size_t planned_time, size_t planned_duration, void *args
 static void td_perform_lerp(td_lerp_t *lerp) {
 	float part = (current_time - lerp->start) / (float) (lerp->end - lerp->start);
 	if (current_time <= lerp->start) {
+		// Clip to beginning.
 		part = 0.0;
 	} else if (current_time >= lerp->end) {
+		// Clip to end.
 		part = 1.0;
 	} else {
 		switch (lerp->timing) {
 			case TD_EASE_OUT:
-				// part = sin(M_PI * 0.5 * part);
+				// Ease-out:    y=-x²+2x
 				part = -part*part + 2*part;
 				break;
 			case TD_EASE_IN:
-				// part = 1 - sin(M_PI * 0.5 * (part + 1));
+				// Ease-in:     y=x²
 				part *= part;
 				break;
 			case TD_EASE:
-				// part = 0.5 - 0.5 * cos(M_PI * part);
+				// Ease-in-out: y=-2x³+3x²
 				part = -2*part*part*part + 3*part*part;
 				break;
 		}
@@ -256,16 +258,20 @@ static void td_perform_lerp(td_lerp_t *lerp) {
 	switch (lerp->type) {
 		uint32_t bleh;
 		case TD_INTERP_TYPE_INT:
+			// Interpolate an integer.
 			*lerp->int_ptr = lerp->int_from + (lerp->int_to - lerp->int_from) * part;
 			break;
 		case TD_INTERP_TYPE_COL:
+			// Interpolate a (RGB) color.
 			*lerp->int_ptr = pax_col_lerp(part*255, lerp->int_from, lerp->int_to);
 			break;
 		case TD_INTERP_TYPE_HSV:
+			// Interpolate a (HSV) color.
 			bleh = pax_col_lerp(part*255, lerp->int_from, lerp->int_to);
 			*lerp->int_ptr = pax_col_ahsv(bleh >> 24, bleh >> 16, bleh >> 8, bleh);
 			break;
 		case TD_INTERP_TYPE_FLOAT:
+			// Interpolate a float.
 			*lerp->float_ptr = lerp->float_from + (lerp->float_to - lerp->float_from) * part;
 			break;
 	}
@@ -514,11 +520,12 @@ bool pax_techdemo_draw(size_t now) {
 	pax_background(buffer, background_color);
 	
 	pax_push_2d(buffer);
+	// Apply transformations.
 	pax_apply_2d(buffer, matrix_2d_translate(width * 0.5, height * 0.5));
 	pax_apply_2d(buffer, matrix_2d_scale(buffer_scaling, buffer_scaling));
 	pax_apply_2d(buffer, matrix_2d_translate(buffer_pan_x - width * 0.5, buffer_pan_y - height * 0.5));
 	
-	// Spinny shapes.
+	// Draw the current scene.
 	switch (to_draw) {
 		case TD_DRAW_SHAPES:
 			td_draw_shapes();
@@ -533,13 +540,13 @@ bool pax_techdemo_draw(size_t now) {
 	
 	pax_pop_2d(buffer);
 	
-	// Text.
+	// Draw the text overlay.
 	pax_col_t text_col_merged = pax_col_merge(background_color, text_col);
 	if (text_col_merged != background_color) {
 		pax_draw_text(buffer, text_col_merged, PAX_FONT_DEFAULT, text_size, 0, 0, text_str);
 	}
 	
-	// The funny text clippening.
+	// Draw the global overlay.
 	if (overlay_clip) {
 		pax_push_2d(buffer);
 		pax_apply_2d(buffer, matrix_2d_scale(clip_scaling, clip_scaling));

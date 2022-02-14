@@ -4,7 +4,7 @@
 
 #include <esp_timer.h>
 
-void menu_render(pax_buf_t *buf, menu_t *menu, float x, float y, float width, float height) {
+void menu_render(pax_buf_t *buf, menu_t *menu, int selected, pax_col_t color, float x, float y, float width, float height) {
     // Check how many entries fit.
     float  scroll       = 0;
     float  entry_height = menu->font_size + 2;
@@ -15,8 +15,7 @@ void menu_render(pax_buf_t *buf, menu_t *menu, float x, float y, float width, fl
     scroll -= entry_offset * entry_height;
     
     size_t millis = esp_timer_get_time() / 1000;
-    int selected = millis / 1000 % menu->n_entries;
-    pax_col_t color = pax_col_hsv(millis * 255 / 8000, 255, 255);;
+    selected %= menu->n_entries;
     
     // Draw the entries.
     y -= scroll;

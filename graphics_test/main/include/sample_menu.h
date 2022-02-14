@@ -33,7 +33,7 @@ struct menu {
     size_t          font_size;
 };
 
-void menu_render(pax_buf_t *buf, menu_t *menu, float x, float y, float width, float height);
+void menu_render(pax_buf_t *buf, menu_t *menu, int selection, pax_col_t color, float x, float y, float width, float height);
 
 #ifdef __cplusplus
 }

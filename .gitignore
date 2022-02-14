@@ -1,2 +1,6 @@
 .vscode
 graphics_test/build
+graphics_test/fpga/fpga_test.asc
+graphics_test/fpga/fpga_test.json
+graphics_test/fpga/fpga_test.bin
+graphics_test/fpga/fpga_test.h

@@ -2,17 +2,17 @@
 .PHONY: all
 all: fpga_test.h
 
-# Use Yosys to create an object file
-fpga_test.blif: fpga_test.v
-	yosys -q -p "read_verilog -noautowire $^ ; check ; clean ; synth_ice40 -blif $@"
+# Synthesis.
+fpga_test.json: fpga_test.v
+	yosys -p 'synth_ice40 -top top -json fpga_test.json' $<
 
-# Use the object file + the constraint file to create bit field file
-fpga_test.txt: fpga_test.blif fpga_test_pins.pcf
-	arachne-pnr -d 5k -P sg48 -p $(word 2,$^) $< -o $@
-# 	nextpnr-ice40 --package sg48 --up5k --pcf $(word 2,$^) $< --asc $@
-# -o $@
-# -d 5k
-# -P sg48
+# Do place and route.
+fpga_test.asc: fpga_test.json fpga_test_pins.pcf
+	nextpnr-ice40 --up5k --package sg48 --json fpga_test.json --pcf fpga_test_pins.pcf --asc $@
+
+# Convert the .asc file to a .bin file.
+fpga_test.bin: fpga_test.asc
+	icepack $< $@
 
 # Convert the .bin file to a C .h file.
 fpga_test.h: fpga_test.bin
@@ -21,18 +21,7 @@ fpga_test.h: fpga_test.bin
 	echo '};' >> fpga_test.h
 	echo 'unsigned int fpga_test_bin_len = sizeof(fpga_test_bin) / sizeof(unsigned char);' >> fpga_test.h
 
-# Pack the bit field file in a format that can be programmed into the FPGA
-fpga_test.bin: fpga_test.txt
-	icepack $< $@
-
-.PHONY: flash
-flash: fpga_test.bin
-	iceprog fpga_test.bin
-
+# El cleanening
 .PHONY: clean
 clean:
-	$(RM) -f fpga_test.blif fpga_test.txt fpga_test.ex fpga_test.bin fpga_test.h
-
-.PHONY: show
-show: fpga_test.blif
-	yosys -p "synth_ice40; show" fpga_test.blif
+	$(RM) fpga_test.json fpga_test.asc fpga_test.h fpga_test.bin

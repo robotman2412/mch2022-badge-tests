@@ -1,9 +1,13 @@
 # Constraints file
 #      <name>      <pin number>
+
+# 12MHz clock input
 set_io clk         35
 
+# IRQ to ESP32
 set_io irq         10
 
+# Active-low LED
 set_io led_b_inv   39
 set_io led_r_inv   40
 set_io led_g_inv   41
@@ -11,6 +15,7 @@ set_io led_g_inv   41
 set_io uart_tx     9
 set_io uart_rx     6
 
+# SPIRAM QuadSPI link
 set_io ram_data0   21
 set_io ram_data1   13
 set_io ram_data2   12
@@ -18,11 +23,13 @@ set_io ram_data3   20
 set_io ram_sck     19
 set_io ram_cs      18
 
+# SPI slave to ESP32
 set_io spi_miso    14
 set_io spi_mosi    17
-set_io spi_sck     15
+set_io spi_clk     15
 set_io spi_cs      16
 
+# LCD in parallel
 set_io lcd_data[0] 26
 set_io lcd_data[1] 27
 set_io lcd_data[2] 31
@@ -39,6 +46,7 @@ set_io i2s_data    36
 set_io i2s_lr      43
 set_io i2s_clk     28
 
+# PMOD connector pins
 set_io pmod[0]     47
 set_io pmod[1]     48
 set_io pmod[2]     4
