@@ -19,3 +19,6 @@
 [submodule "graphics_test/components/bus-i2c"]
 	path = graphics_test/components/bus-i2c
 	url = https://github.com/Nicolai-Electronics/esp32-component-bus-i2c
+[submodule "graphics_test/components/pax-html-test"]
+	path = graphics_test/components/pax-html-test
+	url = https://github.com/robotman2412/pax-html-test

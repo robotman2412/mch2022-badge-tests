@@ -5,14 +5,18 @@
 #include "sample_menu.h"
 #include "techdemo.h"
 
+extern "C" {
 extern void el_tech_demo();
 extern void fpga_tests();
 extern void name_tag();
+}
+
+extern void html_test();
 
 // #include "../components/pax-graphics/test-images/empty.c"
-
 static const char *TAG = "main";
 
+extern "C" {
 PCA9555   dev_pca9555 = {0};
 ICE40     dev_ice40   = {0};
 ILI9341   display     = {0};
@@ -20,10 +24,11 @@ ILI9341   display     = {0};
 uint8_t   framebuffer[ILI9341_BUFFER_SIZE];
 pax_buf_t buf;
 pax_buf_t clip;
+}
 
 // Wrapper functions for linking the ICE40 component to the PCA9555 component
-esp_err_t ice40_get_done_wrapper(bool* done) { return pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_CDONE, done); }
-esp_err_t ice40_set_reset_wrapper(bool reset) { return pca9555_set_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_RESET, reset); }
+esp_err_t ice40_get_done_wrapper (bool *done)  { return pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_CDONE, done);  }
+esp_err_t ice40_set_reset_wrapper(bool  reset) { return pca9555_set_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_RESET, reset); }
 
 typedef void (*mfunc_t)();
 
@@ -144,7 +149,7 @@ void setup_me_hardware() {
 	
 }
 
-void app_main() {
+extern "C" void app_main() {
 	// Let's see.
 	printf("I booted!\n");
 	vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -170,11 +175,13 @@ void app_main() {
 		{ .text = "Tech demo" },
 		{ .text = "FPGA test" },
 		{ .text = "Name tag" },
+		{ .text = "HTML test" },
 	};
 	mfunc_t menu_functions[] = {
 		el_tech_demo,
 		fpga_tests,
 		name_tag,
+		html_test,
 	};
 	size_t menu_size = sizeof(menu_entries) / sizeof(menu_entry_t);
 	menu_t menu = {
@@ -206,7 +213,7 @@ void app_main() {
 		float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
 		float a2 = millis / 8000.0 * M_PI;
 		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(150 + (buf.width - 150) * 0.5, 20 + (buf.height - 20) * 0.5));
+		pax_apply_2d(&buf, matrix_2d_translate(150 + (buf.width - 150) * 0.5f, 20 + (buf.height - 20) * 0.5f));
 		pax_apply_2d(&buf, matrix_2d_scale(50, 50));
 		
 		pax_apply_2d(&buf, matrix_2d_rotate(-a2));
@@ -215,14 +222,14 @@ void app_main() {
 		pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
 		pax_push_2d(&buf);
 		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		pax_draw_rect(&buf, color1, -0.25, -0.25, 0.5, 0.5);
+		pax_draw_rect(&buf, color1, -0.25f, -0.25f, 0.5f, 0.5f);
 		pax_pop_2d(&buf);
 		
 		pax_apply_2d(&buf, matrix_2d_rotate(a1));
 		pax_push_2d(&buf);
 		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
 		pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
-		pax_draw_tri(&buf, color1, 0.25, 0, -0.125, 0.2165, -0.125, -0.2165);
+		pax_draw_tri(&buf, color1, 0.25, 0, -0.125f, 0.2165f, -0.125f, -0.2165f);
 		pax_pop_2d(&buf);
 		
 		pax_pop_2d(&buf);

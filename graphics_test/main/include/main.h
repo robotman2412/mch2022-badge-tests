@@ -70,10 +70,17 @@
 #include <driver/gpio.h>
 #include <esp_pm.h>
 
-#include <managed_i2c.h>
-
 #include <string.h>
 #include <stdlib.h>
+
+#include <driver/spi_master.h>
+#include <hal/spi_types.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <managed_i2c.h>
 
 // I/O expander.
 #include <pca9555.h>
@@ -82,15 +89,21 @@
 #include <ice40.h>
 
 // Screen.
-#include <driver/spi_master.h>
-#include <hal/spi_types.h>
 #include "ili9341.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 // GFX library.
 #include "pax_gfx.h"
 #include "pax_shaders.h"
 #include "pax_codecs.h"
 #include "fake_file.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 // Variables.
 extern PCA9555   dev_pca9555;
@@ -100,5 +113,9 @@ extern ILI9341   display;
 extern uint8_t   framebuffer[ILI9341_BUFFER_SIZE];
 extern pax_buf_t buf;
 extern pax_buf_t clip;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //MAIN_H

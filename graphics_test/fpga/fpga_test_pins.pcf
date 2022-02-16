@@ -2,10 +2,10 @@
 #      <name>      <pin number>
 
 # 12MHz clock input
-set_io clk         35
+set_io clk_12mhz   35
 
 # IRQ to ESP32
-set_io irq         10
+set_io esp_irq     10
 
 # Active-low LED
 set_io led_b_inv   39
@@ -16,11 +16,11 @@ set_io uart_tx     9
 set_io uart_rx     6
 
 # SPIRAM QuadSPI link
-set_io ram_data0   21
-set_io ram_data1   13
-set_io ram_data2   12
-set_io ram_data3   20
-set_io ram_sck     19
+set_io ram_data[0] 21
+set_io ram_data[1] 13
+set_io ram_data[2] 12
+set_io ram_data[3] 20
+set_io ram_clk     19
 set_io ram_cs      18
 
 # SPI slave to ESP32
@@ -38,9 +38,9 @@ set_io lcd_data[4] 34
 set_io lcd_data[5] 37
 set_io lcd_data[6] 38
 set_io lcd_data[7] 42
-set_io lcd_rs      11
+set_io lcd_regsel  11
 set_io lcd_fmark   25
-set_io lcd_wr      23
+set_io lcd_write   23
 
 set_io i2s_data    36
 set_io i2s_lr      43
