@@ -98,6 +98,7 @@ extern "C" {
 // GFX library.
 #include "pax_gfx.h"
 #include "pax_shaders.h"
+#include "pax_shapes.h"
 #include "pax_codecs.h"
 #include "fake_file.h"
 

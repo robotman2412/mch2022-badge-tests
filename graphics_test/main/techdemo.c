@@ -1,6 +1,7 @@
 
 #include "techdemo.h"
 #include "pax_shaders.h"
+#include "pax_shapes.h"
 
 #include <esp_system.h>
 #include <esp_err.h>
@@ -32,10 +33,18 @@ static float      text_size;
 
 // Whether to show the three shapes.
 static int        to_draw;
-// Angle for rotating shapes.
+// Additional parameters for drawing.
 static float      angle_0;
-// Angle for orbiting shapes.
+// Additional parameters for drawing.
 static float      angle_1;
+// Additional parameters for drawing.
+static float      angle_2;
+// Additional parameters for drawing.
+static float      angle_3;
+// Additional parameters for drawing.
+static float      angle_4;
+// Additional parameters for drawing.
+static float      angle_5;
 
 // Scaling applied to the buffer.
 static float      buffer_scaling;
@@ -144,6 +153,8 @@ void pax_techdemo_init(pax_buf_t *framebuffer, pax_buf_t *clipbuffer) {
 		to_draw          = TD_DRAW_SHAPES;
 		angle_0          = 0;
 		angle_1          = 0;
+		angle_2          = 0;
+		angle_3          = 0;
 		
 		buffer_scaling   = 1;
 		buffer_pan_x     = 0;
@@ -329,10 +340,81 @@ static void td_draw_shimmer() {
 	pax_shade_rect(buffer, -1, &shader, NULL, -50, -50, 100, 100);
 }
 
-// Morph yellow cube to circle, then circle to triange outlines.
-static void td_draw_tris() {
-	if (angle_0 < 1) {
-		// Yellow cube to circle.
+// Show arcs and curves.
+static void td_draw_curves() {
+	// Bezier curve control points.
+	pax_vec4_t ctl0 = {
+		.x0 = buffer->width * 0.05,  .y0 = buffer->height * 0.5,
+		.x1 = buffer->width * 0.15,  .y1 = buffer->height * 0.95,
+		.x2 = buffer->width * 0.35,  .y2 = buffer->height * 0.5,
+		.x3 = buffer->width * 0.5,   .y3 = buffer->height * 0.5
+	};
+	// Floating crap control points.
+	const pax_vec1_t el_tri[] = {
+		(pax_vec1_t) { .x =  0.25f,  .y =  0.0f    },
+		(pax_vec1_t) { .x = -0.125f, .y =  0.2165f },
+		(pax_vec1_t) { .x = -0.125f, .y = -0.2165f },
+		(pax_vec1_t) { .x =  0.25f,  .y =  0.0f    },
+	};
+	const pax_vec1_t el_rect[] = {
+		(pax_vec1_t) { .x = -0.25f, .y = -0.25f },
+		(pax_vec1_t) { .x =  0.25f, .y = -0.25f },
+		(pax_vec1_t) { .x =  0.25f, .y =  0.25f },
+		(pax_vec1_t) { .x = -0.25f, .y =  0.25f },
+		(pax_vec1_t) { .x = -0.25f, .y = -0.25f },
+	};
+	
+	// Curve values.
+	float bez0_from = fmaxf(0, fminf(angle_0,     1));
+	float bez0_to   = fmaxf(0, fminf(angle_1,     1));
+	float arc0_from = fmaxf(0, fminf(angle_0 - 1, 1));
+	float arc0_to   = fmaxf(0, fminf(angle_1 - 1, 1));
+	float crap_from = fmaxf(0, fminf(angle_4,     1));
+	float crap_to   = fmaxf(0, fminf(angle_3,     1));
+	
+	// First curve.
+	if (bez0_from != bez0_to) {
+		pax_draw_bezier_part(buffer, -1, ctl0, bez0_from, bez0_to);
+	}
+	// Arc.
+	if (arc0_from != arc0_to) {
+		float a0   = arc0_from * M_PI * -0.25 + M_PI * 0.5;
+		float a1   = arc0_to   * M_PI * -0.25 + M_PI * 0.5;
+		float diff = arc0_to - arc0_from;
+		int   bri  = diff * 255;
+		float x    = buffer->width  * 0.5;
+		float y    = buffer->height * 0.75;
+		float r    = buffer->height * 0.25;
+		
+		pax_outline_arc(buffer, -1, x, y, r, a0, a1);
+		
+		pax_col_t stretch = pax_col_hsv(0, 0, bri);
+		
+		pax_push_2d(buffer);
+		pax_apply_2d(buffer, matrix_2d_translate(x, y));
+		
+		pax_apply_2d(buffer, matrix_2d_rotate(a0));
+		pax_draw_line(buffer, stretch, 0, 0, r, 0);
+		
+		pax_apply_2d(buffer, matrix_2d_rotate(a1 - a0));
+		pax_draw_line(buffer, stretch, 0, 0, r, 0);
+		
+		pax_pop_2d(buffer);
+	}
+	// Floaty shapes.
+	if (crap_from != crap_to) {
+		pax_push_2d(buffer);
+			pax_apply_2d(buffer, matrix_2d_translate(buffer->width  * 0.25,  buffer->height * 0.25));
+			pax_apply_2d(buffer, matrix_2d_scale    (buffer->height * 0.25, buffer->height * 0.25));
+			pax_apply_2d(buffer, matrix_2d_rotate   (angle_2));
+			pax_outline_shape_part(buffer, -1, 4, el_tri, crap_from, crap_to);
+		pax_pop_2d(buffer);
+		pax_push_2d(buffer);
+			pax_apply_2d(buffer, matrix_2d_translate(buffer->width  * 0.75,  buffer->height * 0.25));
+			pax_apply_2d(buffer, matrix_2d_scale    (buffer->height * 0.25, buffer->height * 0.25));
+			pax_apply_2d(buffer, matrix_2d_rotate   (angle_2));
+			pax_outline_shape_part(buffer, -1, 5, el_rect, crap_from, crap_to);
+		pax_pop_2d(buffer);
 	}
 }
 
@@ -347,6 +429,7 @@ static void td_draw_tris() {
 	  - Clipping
 	  ✓ Advanced shaders
 	  - Texure mapping
+	  - Curves
 	Relevant notes:
 	  - MCH2022 sponsors should probably go here, before the demo.
 	  - There should be an always present "skip" option (except sponsors maybe).
@@ -414,7 +497,15 @@ static void td_draw_tris() {
 #define TD_SET_BOOL(variable, value) TD_SET_0(sizeof(bool), variable, value)
 #define TD_SET_INT(variable, value) TD_SET_0(sizeof(int), variable, value)
 #define TD_SET_LONG(variable, value) TD_SET_0(sizeof(long), variable, value)
-#define TD_SET_FLOAT(variable, value) TD_SET_0(sizeof(float), variable, value)
+#define TD_SET_FLOAT(variable, new_value) {\
+			.duration = 0,\
+			.callback = td_set_var,\
+			.callback_args = &(td_set_t){\
+				.size     = sizeof(float),\
+				.pointer  = (void *) &(variable),\
+				.f_value  = (new_value)\
+			}\
+		}
 #define TD_SET_STR(value) {\
 			.duration = 0,\
 			.callback = td_set_str,\
@@ -429,33 +520,53 @@ static td_event_t events[] = {
 	TD_DRAW_TITLE  ("MCH2022", "graphics tech demo"),
 	
 	// Fade out a cutout.
-	TD_INTERP_COL  (1500, 1500, TD_LINEAR, palette[0], 0xffffffff, 0),
-	TD_INTERP_COL  (2400, 2400, TD_LINEAR, palette[1], 0xffffffff, 0),
+	TD_INTERP_COL  (1500, 1500, TD_LINEAR,  palette[0], 0xffffffff, 0),
+	TD_INTERP_COL  (2400, 2400, TD_LINEAR,  palette[1], 0xffffffff, 0),
 	TD_SET_BOOL    (overlay_clip, false),
 	
 	// Start spinning the shapes.
 	TD_SHOW_TEXT   ("2D transformations"),
-	TD_INTERP_FLOAT(2000, 4000, TD_EASE, angle_0, 0, M_PI*3),
-	TD_INTERP_FLOAT(2000, 4000, TD_EASE_IN, angle_1, 0, M_PI*2),
+	TD_INTERP_FLOAT(2000, 4000, TD_EASE,     angle_0, 0, M_PI*3),
+	TD_INTERP_FLOAT(2000, 4000, TD_EASE_IN,  angle_1, 0, M_PI*2),
 	
 	// Zoom in on the circle.
-	TD_INTERP_FLOAT(   0, 2000, TD_EASE_IN, buffer_scaling, 1, 3),
-	TD_INTERP_COL  (2500, 2000, TD_EASE_IN, background_color, 0, 0xffff0000),
+	TD_INTERP_FLOAT(   0, 2000, TD_EASE_IN,  buffer_scaling, 1, 3),
+	TD_INTERP_COL  (2500, 2000, TD_EASE_IN,  background_color, 0, 0xffff0000),
 	
 	// Show the shimmer effect.
 	TD_SHOW_TEXT   ("Shader support"),
-	TD_SET_INT     (to_draw, TD_DRAW_SHIMMER),
+	TD_SET_INT     (to_draw,    TD_DRAW_SHIMMER),
 	TD_SET_BOOL    (use_background, false),
 	TD_INTERP_FLOAT(   0,  500, TD_EASE_OUT, buffer_scaling, 0.00001, 1),
-	TD_INTERP_FLOAT( 500,  500, TD_EASE, angle_1, M_PI*0.5, 0),
-	TD_INTERP_FLOAT(1500, 1500, TD_EASE, angle_0, 0, 1),
-	TD_SET_BOOL    (use_background, true),
+	TD_INTERP_FLOAT( 500,  500, TD_EASE,     angle_1, M_PI*0.5, 0),
+	TD_INTERP_FLOAT(1500, 1500, TD_EASE,     angle_0, 0, 1),
 	
-	// Fade out.
-	TD_INTERP_FLOAT( 500,  500, TD_EASE_OUT, buffer_scaling, 1, 0.00001),
+	// Fade away the yelloughw.
+	TD_SET_BOOL    (use_background, true),
+	TD_INTERP_FLOAT(   0,  500, TD_EASE_OUT, buffer_scaling, 1, 0.00001),
+	TD_INTERP_COL  ( 500,  500, TD_EASE,     background_color, 0xffff0000, 0xff000000),
+	
+	// Draw funny arcs and curves.
+	TD_SHOW_TEXT   ("Curves"),
+	TD_SET_INT     (to_draw,    TD_DRAW_CURVES),
+	TD_SET_FLOAT   (buffer_scaling, 1),
+	TD_SET_FLOAT   (angle_0,        0),
+	TD_SET_FLOAT   (angle_4,        0),
+	TD_INTERP_FLOAT(   0, 4500, TD_EASE,     angle_2, 0, M_PI * 0.5),
+	TD_INTERP_FLOAT(   0, 3000, TD_EASE,     angle_3, 0, 1),
+	TD_INTERP_FLOAT(1500, 1500, TD_EASE,     angle_1, 0, 1),
+	TD_INTERP_FLOAT( 500,  500, TD_EASE,     angle_1, 1, 2),
+	TD_INTERP_FLOAT(1000, 1000, TD_EASE,     angle_1, 2, 3),
+	
+	TD_INTERP_FLOAT(   0, 1500, TD_EASE,     angle_4, 0, 1),
+	TD_INTERP_FLOAT( 750,  750, TD_EASE,     angle_0, 0, 1),
+	TD_INTERP_FLOAT( 250,  250, TD_EASE,     angle_0, 1, 2),
+	TD_INTERP_FLOAT( 500,  500, TD_EASE,     angle_0, 2, 3),
+	
+	// Become colors.
 	TD_SHOW_TEXT   ("Colorful"),
 	TD_SET_INT     (to_draw, TD_DRAW_NONE),
-	TD_INTERP_AHSV (2000, 2000, TD_EASE_IN,  background_color, 0xff00ffff, 0xffffffff),
+	TD_INTERP_AHSV (2000, 2000, TD_EASE_IN,  background_color, 0xff000000, 0xffffffff),
 	TD_INTERP_AHSV (2000, 2000, TD_EASE_OUT, background_color, 0xff00ffff, 0xffff00ff),
 	
 	// Mark the end.
@@ -533,8 +644,8 @@ bool pax_techdemo_draw(size_t now) {
 		case TD_DRAW_SHIMMER:
 			td_draw_shimmer();
 			break;
-		case TD_DRAW_TRIS:
-			td_draw_tris();
+		case TD_DRAW_CURVES:
+			td_draw_curves();
 			break;
 	}
 	

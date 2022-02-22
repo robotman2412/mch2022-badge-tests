@@ -206,32 +206,46 @@ extern "C" void app_main() {
 		
 		pax_col_t color0 = pax_col_hsv(millis * 255 / 8000 + 127, 255, 255);
 		pax_col_t color1 = pax_col_hsv(millis * 255 / 8000, 255, 255);
+		pax_background(&buf, 0xff000000);
 		
 		// Epic arcs demo.
-		pax_background(&buf, 0xff000000);
-		float a0 = millis / 5000.0 * M_PI;
-		float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
-		float a2 = millis / 8000.0 * M_PI;
+		// float a0 = millis / 5000.0 * M_PI;
+		// float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
+		// float a2 = millis / 8000.0 * M_PI;
+		// pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(150 + (buf.width - 150) * 0.5f, 20 + (buf.height - 20) * 0.5f));
+		// pax_apply_2d(&buf, matrix_2d_scale(50, 50));
+		
+		// pax_apply_2d(&buf, matrix_2d_rotate(-a2));
+		// pax_draw_arc(&buf, color0, 0, 0, 1, a0 + a2, a0 + a1 + a2);
+		
+		// pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
+		// pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		// pax_draw_rect(&buf, color1, -0.25f, -0.25f, 0.5f, 0.5f);
+		// pax_pop_2d(&buf);
+		
+		// pax_apply_2d(&buf, matrix_2d_rotate(a1));
+		// pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		// pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
+		// pax_draw_tri(&buf, color1, 0.25f, 0f, -0.125f, 0.2165f, -0.125f, -0.2165f);
+		// pax_pop_2d(&buf);
+		
+		// pax_pop_2d(&buf);
+		
 		pax_push_2d(&buf);
 		pax_apply_2d(&buf, matrix_2d_translate(150 + (buf.width - 150) * 0.5f, 20 + (buf.height - 20) * 0.5f));
-		pax_apply_2d(&buf, matrix_2d_scale(50, 50));
-		
-		pax_apply_2d(&buf, matrix_2d_rotate(-a2));
-		pax_draw_arc(&buf, color0, 0, 0, 1, a0 + a2, a0 + a1 + a2);
-		
-		pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
-		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		pax_draw_rect(&buf, color1, -0.25f, -0.25f, 0.5f, 0.5f);
-		pax_pop_2d(&buf);
-		
-		pax_apply_2d(&buf, matrix_2d_rotate(a1));
-		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
-		pax_draw_tri(&buf, color1, 0.25, 0, -0.125f, 0.2165f, -0.125f, -0.2165f);
-		pax_pop_2d(&buf);
-		
+		pax_apply_2d(&buf, matrix_2d_scale(100, 100));
+		pax_apply_2d(&buf, matrix_2d_translate(-0.5f, -0.5f));
+		// El test bezier of.
+		pax_vec4_t ctl = {
+			.x0 = 0, .y0 = 0.7,
+			.x1 = 0, .y1 = 0.2,
+			.x2 = 1, .y2 = 0.8,
+			.x3 = 1, .y3 = 0.3
+		};
+		pax_draw_bezier(&buf, -1, ctl);
 		pax_pop_2d(&buf);
 		
 		// GET THE BUTTONS!

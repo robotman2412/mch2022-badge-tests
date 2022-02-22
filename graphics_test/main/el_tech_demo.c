@@ -5,7 +5,7 @@
 static const char *TAG = "tech-demo";
 
 void el_tech_demo() {
-    
+	
 	pax_techdemo_init(&buf, &clip);
 	uint64_t start = esp_timer_get_time() / 1000;
 	uint64_t last_time = start;
@@ -29,12 +29,12 @@ void el_tech_demo() {
 			pax_techdemo_init(&buf, &clip);
 			start = esp_timer_get_time() / 1000;
 		}
-        
+		
 		last_time = now;
-        
-        // Limit of loop.
-        bool exuent = false;
-        pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_HOME, &exuent);
-        if (exuent) break;
+		
+		// Limit of loop.
+		bool exuent = false;
+		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_HOME, &exuent);
+		if (exuent) break;
 	}
 }
