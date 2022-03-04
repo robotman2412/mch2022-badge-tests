@@ -22,3 +22,6 @@
 [submodule "graphics_test/components/pax-html-test"]
 	path = graphics_test/components/pax-html-test
 	url = https://github.com/robotman2412/pax-html-test
+[submodule "graphics_test/main/mch2022-demo"]
+	path = graphics_test/main/mch2022-demo
+	url = https://github.com/robotman2412/mch2022-demo
