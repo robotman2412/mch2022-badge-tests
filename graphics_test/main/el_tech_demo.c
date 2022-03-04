@@ -1,6 +1,6 @@
 
 #include "include/main.h"
-#include "include/techdemo.h"
+#include "mch2022-demo/techdemo.h"
 
 static const char *TAG = "tech-demo";
 

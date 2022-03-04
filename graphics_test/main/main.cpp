@@ -9,6 +9,7 @@ extern "C" {
 extern void el_tech_demo();
 extern void fpga_tests();
 extern void name_tag();
+extern void countdown();
 }
 
 extern void html_test();
@@ -176,12 +177,14 @@ extern "C" void app_main() {
 		{ .text = "FPGA test" },
 		{ .text = "Name tag" },
 		{ .text = "HTML test" },
+		{ .text = "Countdown" },
 	};
 	mfunc_t menu_functions[] = {
 		el_tech_demo,
 		fpga_tests,
 		name_tag,
 		html_test,
+		countdown,
 	};
 	size_t menu_size = sizeof(menu_entries) / sizeof(menu_entry_t);
 	menu_t menu = {
@@ -234,19 +237,42 @@ extern "C" void app_main() {
 		
 		// pax_pop_2d(&buf);
 		
+		// // Of non intersnect.
+		// pax_vec1_t points[] = {
+		// 	(pax_vec1_t) { .x = -1.0f, .y = -1.0f },
+		// 	(pax_vec1_t) { .x =  0.0f, .y = -0.5f },
+		// 	(pax_vec1_t) { .x =  1.0f, .y = -1.0f },
+		// 	(pax_vec1_t) { .x =  1.0f, .y =  1.0f },
+		// 	(pax_vec1_t) { .x =  0.0f, .y =  0.5f },
+		// 	(pax_vec1_t) { .x = -1.0f, .y =  1.0f },
+		// };
+		// // Of yesm intersnect.
+		// pax_vec1_t points[] = {
+		// 	(pax_vec1_t) { .x = -1.0f, .y = -1.0f },
+		// 	(pax_vec1_t) { .x =  0.0f, .y =  0.5f },
+		// 	(pax_vec1_t) { .x =  1.0f, .y = -1.0f },
+		// 	(pax_vec1_t) { .x =  1.0f, .y =  1.0f },
+		// 	(pax_vec1_t) { .x =  0.0f, .y = -0.5f },
+		// 	(pax_vec1_t) { .x = -1.0f, .y =  1.0f },
+		// };
+		// Of torture test.
+		pax_vec1_t points[] = {
+			(pax_vec1_t) { .x = -1.0f, .y =  1.0f },
+			(pax_vec1_t) { .x =  0.0f, .y =  0.3f },
+			(pax_vec1_t) { .x =  1.0f, .y =  1.0f },
+			(pax_vec1_t) { .x =  1.0f, .y = -0.3f },
+			(pax_vec1_t) { .x =  0.0f, .y = -1.0f },
+			(pax_vec1_t) { .x = -1.0f, .y = -0.3f },
+		};
+		size_t n_points = sizeof(points) / sizeof(pax_vec1_t);
 		pax_push_2d(&buf);
 		pax_apply_2d(&buf, matrix_2d_translate(150 + (buf.width - 150) * 0.5f, 20 + (buf.height - 20) * 0.5f));
-		pax_apply_2d(&buf, matrix_2d_scale(100, 100));
-		pax_apply_2d(&buf, matrix_2d_translate(-0.5f, -0.5f));
-		// El test bezier of.
-		pax_vec4_t ctl = {
-			.x0 = 0, .y0 = 0.7,
-			.x1 = 0, .y1 = 0.2,
-			.x2 = 1, .y2 = 0.8,
-			.x3 = 1, .y3 = 0.3
-		};
-		pax_draw_bezier(&buf, -1, ctl);
+		pax_apply_2d(&buf, matrix_2d_scale(50, 50));
+		// El test triagnulbaste of.
+		pax_draw_shape(&buf, 0xffff0000, n_points, points);
+		pax_outline_shape(&buf, 0xff00ff00, n_points, points);
 		pax_pop_2d(&buf);
+		
 		
 		// GET THE BUTTONS!
 		bool up   = last_up;
