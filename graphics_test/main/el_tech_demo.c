@@ -25,6 +25,7 @@ void el_tech_demo() {
 			vTaskDelay(3000 / portTICK_PERIOD_MS);
 			esp_restart();
 		}
+		taskYIELD();
 		if (fin) {
 			pax_techdemo_init(&buf, &clip);
 			start = esp_timer_get_time() / 1000;

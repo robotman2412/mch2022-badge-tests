@@ -215,32 +215,32 @@ extern "C" void app_main() {
 		pax_background(&buf, 0xff000000);
 		
 		// Epic arcs demo.
-		// float a0 = millis / 5000.0 * M_PI;
-		// float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
-		// float a2 = millis / 8000.0 * M_PI;
-		// pax_push_2d(&buf);
-		// pax_apply_2d(&buf, matrix_2d_translate(150 + (buf.width - 150) * 0.5f, 20 + (buf.height - 20) * 0.5f));
-		// pax_apply_2d(&buf, matrix_2d_scale(50, 50));
+		float a0 = millis / 5000.0 * M_PI;
+		float a1 = fmodf(a0, M_PI * 4) - M_PI * 2;
+		float a2 = millis / 8000.0 * M_PI;
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(150 + (buf.width - 150) * 0.5f, 20 + (buf.height - 20) * 0.5f));
+		pax_apply_2d(&buf, matrix_2d_scale(50, 50));
 		
-		// pax_apply_2d(&buf, matrix_2d_rotate(-a2));
-		// pax_draw_arc(&buf, color0, 0, 0, 1, a0 + a2, a0 + a1 + a2);
+		pax_apply_2d(&buf, matrix_2d_rotate(-a2));
+		pax_draw_arc(&buf, color0, 0, 0, 1, a0 + a2, a0 + a1 + a2);
 		
-		// pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
-		// pax_push_2d(&buf);
-		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		// pax_draw_rect(&buf, color1, -0.25f, -0.25f, 0.5f, 0.5f);
-		// pax_pop_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_rotate(a0 + a2));
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		pax_draw_rect(&buf, color1, -0.25f, -0.25f, 0.5f, 0.5f);
+		pax_pop_2d(&buf);
 		
-		// pax_apply_2d(&buf, matrix_2d_rotate(a1));
-		// pax_push_2d(&buf);
-		// pax_apply_2d(&buf, matrix_2d_translate(1, 0));
-		// pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
-		// pax_draw_tri(&buf, color1, 0.25f, 0f, -0.125f, 0.2165f, -0.125f, -0.2165f);
-		// pax_pop_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_rotate(a1));
+		pax_push_2d(&buf);
+		pax_apply_2d(&buf, matrix_2d_translate(1, 0));
+		pax_apply_2d(&buf, matrix_2d_rotate(-a0 - a1 + M_PI * 0.5));
+		pax_draw_tri(&buf, color1, 0.25f, 0.0f, -0.125f, 0.2165f, -0.125f, -0.2165f);
+		pax_pop_2d(&buf);
 		
-		// pax_pop_2d(&buf);
+		pax_pop_2d(&buf);
 		
-		// // Of non intersnect.
+		// Of non intersnect.
 		// pax_vec1_t points[] = {
 		// 	(pax_vec1_t) { .x = -1.0f, .y = -1.0f },
 		// 	(pax_vec1_t) { .x =  0.0f, .y = -0.5f },
@@ -249,7 +249,7 @@ extern "C" void app_main() {
 		// 	(pax_vec1_t) { .x =  0.0f, .y =  0.5f },
 		// 	(pax_vec1_t) { .x = -1.0f, .y =  1.0f },
 		// };
-		// // Of yesm intersnect.
+		// Of yesm intersnect.
 		// pax_vec1_t points[] = {
 		// 	(pax_vec1_t) { .x = -1.0f, .y = -1.0f },
 		// 	(pax_vec1_t) { .x =  0.0f, .y =  0.5f },
@@ -259,22 +259,22 @@ extern "C" void app_main() {
 		// 	(pax_vec1_t) { .x = -1.0f, .y =  1.0f },
 		// };
 		// Of torture test.
-		pax_vec1_t points[] = {
-			(pax_vec1_t) { .x = -1.0f, .y =  1.0f },
-			(pax_vec1_t) { .x =  0.0f, .y =  0.3f },
-			(pax_vec1_t) { .x =  1.0f, .y =  1.0f },
-			(pax_vec1_t) { .x =  1.0f, .y = -0.3f },
-			(pax_vec1_t) { .x =  0.0f, .y = -1.0f },
-			(pax_vec1_t) { .x = -1.0f, .y = -0.3f },
-		};
-		size_t n_points = sizeof(points) / sizeof(pax_vec1_t);
-		pax_push_2d(&buf);
-		pax_apply_2d(&buf, matrix_2d_translate(150 + (buf.width - 150) * 0.5f, 20 + (buf.height - 20) * 0.5f));
-		pax_apply_2d(&buf, matrix_2d_scale(50, 50));
-		// El test triagnulbaste of.
-		pax_draw_shape(&buf, 0xffff0000, n_points, points);
-		pax_outline_shape(&buf, 0xff00ff00, n_points, points);
-		pax_pop_2d(&buf);
+		// pax_vec1_t points[] = {
+		// 	(pax_vec1_t) { .x = -1.0f, .y =  1.0f },
+		// 	(pax_vec1_t) { .x =  0.0f, .y =  0.3f },
+		// 	(pax_vec1_t) { .x =  1.0f, .y =  1.0f },
+		// 	(pax_vec1_t) { .x =  1.0f, .y = -0.3f },
+		// 	(pax_vec1_t) { .x =  0.0f, .y = -1.0f },
+		// 	(pax_vec1_t) { .x = -1.0f, .y = -0.3f },
+		// };
+		// size_t n_points = sizeof(points) / sizeof(pax_vec1_t);
+		// pax_push_2d(&buf);
+		// pax_apply_2d(&buf, matrix_2d_translate(150 + (buf.width - 150) * 0.5f, 20 + (buf.height - 20) * 0.5f));
+		// pax_apply_2d(&buf, matrix_2d_scale(50, 50));
+		// // El test triagnulbaste of.
+		// pax_draw_shape(&buf, 0xffff0000, n_points, points);
+		// pax_outline_shape(&buf, 0xff00ff00, n_points, points);
+		// pax_pop_2d(&buf);
 		
 		
 		// GET THE BUTTONS!
