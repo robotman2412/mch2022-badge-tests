@@ -19,7 +19,7 @@ void menu_render(pax_buf_t *buf, menu_t *menu, int selected, pax_col_t color, fl
     
     // Draw the entries.
     y -= scroll;
-    pax_simple_line(buf, color, x + width, y, x + width, y + height - 1);
+    pax_simple_line(buf, color, x + width - 1, y, x + width - 1, y + height - 1);
     pax_clip(buf, x, y, width, height);
     for (size_t i = entry_offset; i < menu->n_entries && i < entry_offset + n_fit; i++) {
         if (i == selected) {
