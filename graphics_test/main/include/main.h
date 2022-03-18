@@ -100,7 +100,6 @@ extern "C" {
 #include "pax_shaders.h"
 #include "pax_shapes.h"
 #include "pax_codecs.h"
-#include "fake_file.h"
 
 #ifdef __cplusplus
 extern "C" {
