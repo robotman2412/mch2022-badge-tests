@@ -4,7 +4,7 @@
 
 static const char *TAG = "png-tests";
 
-#include "mch2022-demo/images/mch2021_small.c"
+#include "mch2022-demo/images/mch2021_half.c"
 
 
 // extern char temp_logo_png[];
@@ -24,7 +24,7 @@ void png_tests() {
 	// 	pax_background(&buf, 0xffff0000);
 	// }
 	
-	if (pax_decode_png_buf(&buf, mch2021_small_png, mch2021_small_png_len, buf.type, CODEC_FLAG_EXISTING)) {
+	if (pax_decode_png_buf(&buf, mch2021_half_png, mch2021_half_png_len, buf.type, CODEC_FLAG_EXISTING)) {
 		ESP_LOGI(TAG, "PNG decd success.");
 	} else {
 		ESP_LOGE(TAG, "PNG decd failure.");

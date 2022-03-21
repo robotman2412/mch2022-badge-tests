@@ -12,8 +12,10 @@ idf_component_register(
 	
 	"mch2022-demo/techdemo.c"
 	"mch2022-demo/sponsors.c"
+	"mch2022-demo/images/anim_intro.c"
 
 	INCLUDE_DIRS
 	"include"
 	"mch2022-demo"
+	"mch2022-demo/images"
 )

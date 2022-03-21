@@ -28,6 +28,8 @@ pax_buf_t buf;
 pax_buf_t clip;
 }
 
+uint8_t   clipbuffer [(ILI9341_WIDTH * ILI9341_HEIGHT * PAX_GET_BPP(PAX_TD_BUF_TYPE) + 7) / 8];
+
 // Wrapper functions for linking the ICE40 component to the PCA9555 component
 esp_err_t ice40_get_done_wrapper (bool *done)  { return pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_CDONE, done);  }
 esp_err_t ice40_set_reset_wrapper(bool  reset) { return pca9555_set_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_RESET, reset); }
@@ -166,7 +168,7 @@ extern "C" void app_main() {
 		esp_restart();
 	}
 	ESP_LOGI(TAG, "Creating clip buffer.");
-	pax_buf_init(&clip, NULL, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_TD_BUF_TYPE);
+	pax_buf_init(&clip, clipbuffer, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_TD_BUF_TYPE);
 	if (pax_last_error) {
 		ESP_LOGE(TAG, "Clip buffer creation failed.");
 		vTaskDelay(3000 / portTICK_PERIOD_MS);
