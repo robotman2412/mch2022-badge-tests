@@ -9,6 +9,9 @@ idf_component_register(
 	"name_tag.c"
 	"html_test.cpp"
 	"countdown.c"
+	"gimmekeyboard.c"
+	
+	"pax-keyboard/pax_keyboard.c"
 	
 	"mch2022-demo/techdemo.c"
 	"mch2022-demo/sponsors.c"
@@ -18,4 +21,5 @@ idf_component_register(
 	"include"
 	"mch2022-demo"
 	"mch2022-demo/images"
+	"pax-keyboard"
 )

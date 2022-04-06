@@ -24,4 +24,7 @@
 	url = https://github.com/robotman2412/pax-html-test
 [submodule "graphics_test/main/mch2022-demo"]
 	path = graphics_test/main/mch2022-demo
-	url = https://github.com/robotman2412/mch2022-demo
+	url = https://github.com/badgeteam/mch2022-demo
+[submodule "graphics_test/main/pax-keyboard"]
+	path = graphics_test/main/pax-keyboard
+	url = https://github.com/robotman2412/pax-keyboard

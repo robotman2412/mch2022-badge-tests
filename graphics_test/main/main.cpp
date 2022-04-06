@@ -11,6 +11,7 @@ extern void fpga_tests();
 extern void name_tag();
 extern void countdown();
 extern void png_tests();
+extern void gimmekeyboard();
 }
 
 extern void html_test();
@@ -182,6 +183,7 @@ extern "C" void app_main() {
 		{ .text = "HTML test" },
 		{ .text = "Countdown" },
 		{ .text = "PNG test" },
+		{ .text = "Keyboard" },
 	};
 	mfunc_t menu_functions[] = {
 		el_tech_demo,
@@ -190,6 +192,7 @@ extern "C" void app_main() {
 		html_test,
 		countdown,
 		png_tests,
+		gimmekeyboard,
 	};
 	size_t menu_size = sizeof(menu_entries) / sizeof(menu_entry_t);
 	menu_t menu = {
