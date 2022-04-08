@@ -1,5 +1,5 @@
 
-#include <main.h>
+#include "main.h"
 #include <pax_keyboard.h>
 
 void gimmekeyboard() {
@@ -90,7 +90,7 @@ void gimmekeyboard() {
 		// Limit of loop.
 		bool exuent = false;
 		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_HOME, &exuent);
-		if (exuent) break;
+		if (exuent || (kb_ctx.input_accepted && !acc)) break;
 	}
 	
 	free(kb_ctx.content);
