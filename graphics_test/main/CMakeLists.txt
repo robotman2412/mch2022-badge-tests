@@ -10,6 +10,7 @@ idf_component_register(
 	"html_test.cpp"
 	"countdown.c"
 	"gimmekeyboard.c"
+	"benchmark.c"
 	
 	"mch2022-demo/techdemo.c"
 	"mch2022-demo/sponsors.c"

@@ -11,7 +11,7 @@
 #define SPI_CS_LCD       32
 #define SPI_DC_LCD       33
 #define SPI_BUS          VSPI_HOST
-#define SPI_MAX_TRANSFER 4094
+#define SPI_MAX_TRANSFER 65536 //4094
 #define SPI_DMA_CH       2
 
 #define DISPLAY_RST     -1

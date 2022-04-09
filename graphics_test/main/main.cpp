@@ -12,6 +12,7 @@ extern void name_tag();
 extern void countdown();
 extern void png_tests();
 extern void gimmekeyboard();
+extern void benchmark();
 }
 
 extern void html_test();
@@ -178,6 +179,7 @@ extern "C" void app_main() {
 	
 	menu_entry_t menu_entries[] = {
 		{ .text = "Tech demo" },
+		{ .text = "Benchmark" },
 		{ .text = "FPGA test" },
 		{ .text = "Name tag" },
 		{ .text = "HTML test" },
@@ -187,6 +189,7 @@ extern "C" void app_main() {
 	};
 	mfunc_t menu_functions[] = {
 		el_tech_demo,
+		benchmark,
 		fpga_tests,
 		name_tag,
 		html_test,
