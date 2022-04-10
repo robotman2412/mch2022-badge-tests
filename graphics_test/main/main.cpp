@@ -323,6 +323,7 @@ extern "C" void app_main() {
 		
 		// Barf it out.
 		ili9341_write(&display, framebuffer);
+		taskYIELD();
 	}
 	
 	// Cleaning.
