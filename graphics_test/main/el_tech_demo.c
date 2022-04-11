@@ -8,12 +8,12 @@ void el_tech_demo() {
 	
 	pax_techdemo_init(&buf, &clip);
 	uint64_t start = esp_timer_get_time() / 1000;
-	uint64_t last_time = start;
-	char text_buf[32];
+	// uint64_t last_time = start;
+	// char text_buf[32];
 	while (1) {
 		uint64_t now = esp_timer_get_time() / 1000 - start;
 		bool fin = pax_techdemo_draw(now);
-		uint64_t post = esp_timer_get_time() / 1000 - start;
+		// uint64_t post = esp_timer_get_time() / 1000 - start;
 		// int fps_full = 1000 / (now - last_time);
 		// int fps_render = 1000 / (post - now);
 		// snprintf(text_buf, 31, "%d/%d FPS", fps_full, fps_render);
@@ -31,7 +31,7 @@ void el_tech_demo() {
 			start = esp_timer_get_time() / 1000;
 		}
 		
-		last_time = now;
+		// last_time = now;
 		
 		// Limit of loop.
 		bool exuent = false;

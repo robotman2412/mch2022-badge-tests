@@ -13,8 +13,6 @@ void menu_render(pax_buf_t *buf, menu_t *menu, int selected, pax_col_t color, fl
     // Simplify scroll variable.
     size_t entry_offset = scroll / entry_height;
     scroll -= entry_offset * entry_height;
-    
-    size_t millis = esp_timer_get_time() / 1000;
     selected %= menu->n_entries;
     
     // Draw the entries.
