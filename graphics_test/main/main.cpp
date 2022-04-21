@@ -315,9 +315,11 @@ extern "C" void app_main() {
 		last_down = down;
 		
 		// Menu.
-		char *text = "PAX test firmware";
-		pax_vec1_t size = pax_text_size(NULL, 18, text);
-		pax_draw_text(&buf, color1, NULL, 18, (buf.width - size.x) / 2, 0, text);
+		char *text = "Permanent Marker 18"; //"¯\\_(ツ)_/¯"; //"PAX test firmware";
+		pax_font_t *font      = pax_get_font("permanentmarker");
+		float       font_size = 18;
+		pax_vec1_t size = pax_text_size(font, font_size, text);
+		pax_draw_text(&buf, color1, font, font_size, (buf.width - size.x) / 2, 0, text);
 		pax_simple_line(&buf, color1, 0, 19, buf.width - 1, 19);
 		menu_render(&buf, &menu, selection, color1, 0, 20, 150, buf.height);
 		

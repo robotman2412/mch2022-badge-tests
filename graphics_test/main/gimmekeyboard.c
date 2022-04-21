@@ -1,8 +1,9 @@
 
-#include "main.h"
+#include "include/main.h"
 #include <mch2022_keyb.h>
 
 void gimmekeyboard() {
+	ESP_LOGI("null", "Got to gimmekeyboard()");
 	char *val = mch_keyb_simple(&buf, &display, &dev_pca9555, NULL);
 	if (val) free(val);
 }
