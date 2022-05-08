@@ -315,7 +315,7 @@ extern "C" void app_main() {
 		last_down = down;
 		
 		// Menu.
-		char *text = "¯\\_(ツ)_/¯"; //"PAX test firmware";
+		char *text = "MCH2022 ¯\\_(ツ)_/¯ firmware"; //"PAX test firmware";
 		pax_font_t *font      = pax_get_font("sky");
 		float       font_size = 18;
 		pax_vec1_t size = pax_text_size(font, font_size, text);
