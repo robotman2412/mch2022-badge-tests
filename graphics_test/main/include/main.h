@@ -2,42 +2,45 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-// Prototype configuration.
-#define SPI_SCLK         18
-#define SPI_MOSI         23
-#define SPI_MISO         35
-#define SPI_CS_STM32     19
-#define SPI_CS_FPGA      27
-#define SPI_CS_LCD       32
-#define SPI_DC_LCD       33
-#define SPI_BUS          VSPI_HOST
-#define SPI_MAX_TRANSFER 65536 //4094
-#define SPI_DMA_CH       2
+#define GPIO_I2S_MCLK    0
+#define GPIO_UART_TX     1
+#define GPIO_SD_D0       2
+#define GPIO_UART_RX     3
+#define GPIO_I2S_LR      4
+#define GPIO_LED_DATA    5
+#define GPIO_I2S_CLK     12
+#define GPIO_I2S_DATA    13
+#define GPIO_SD_CLK      14
+#define GPIO_SD_CMD      15
+#define GPIO_SPI_CLK     18
+#define GPIO_SD_PWR      19  // Also LED power
+#define GPIO_I2C_SCL     21
+#define GPIO_I2C_SDA     22
+#define GPIO_SPI_MOSI    23
+#define GPIO_LCD_RESET   25
+#define GPIO_LCD_MODE    26
+#define GPIO_SPI_CS_FPGA 27
+#define GPIO_SPI_CS_LCD  32
+#define GPIO_SPI_DC_LCD  33
+#define GPIO_INT_RP2040  34  // Active low
+#define GPIO_SPI_MISO    35
+#define GPIO_INT_BNO055  36  // Active low
+#define GPIO_INT_FPGA    39  // Active low
 
-#define DISPLAY_RST     -1
-#define DISPLAY_CS       SPI_CS_LCD
-#define DISPLAY_DCX      SPI_DC_LCD
+// I2C bus
+#define I2C_BUS        0
+#define I2C_SPEED      400000  // 400 kHz
+#define I2C_TIMEOUT    250 // us
 
-// Interrupts
-#define GPIO_INT_STM32   0
-#define GPIO_INT_PCA9555 34
-#define GPIO_INT_BNO055  36
-#define GPIO_INT_FPGA    39
+#define RP2040_ADDR 0x17  // RP2040 co-processor
+#define BNO055_ADDR 0x28  // BNO055 position sensor
+#define BME680_ADDR 0x77  // BME680 environmental sensor
 
-// System I2C bus
-#define GPIO_I2C_SYS_SCL 21
-#define GPIO_I2C_SYS_SDA 22
-#define I2C_BUS_SYS      0
-#define I2C_SPEED_SYS    20000 // 20 kHz
+// SPI bus
+#define SPI_BUS               VSPI_HOST
+#define SPI_MAX_TRANSFER_SIZE 4094
+#define SPI_DMA_CHANNEL       2
 
-// RP2040
-#define RP2040_I2C_BUS   I2C_BUS_SYS
-#define RP2040_I2C_ADDR  0x17
-#define RP2040_I2C_IRQ   0
-#define RP2040_REG_LCDM  4
-
-// PCA9555 IO expander
-#define PCA9555_ADDR              0x26
 #define PCA9555_PIN_STM32_RESET   0
 #define PCA9555_PIN_STM32_BOOT0   1
 #define PCA9555_PIN_FPGA_RESET    2
@@ -64,7 +67,9 @@
 #include <malloc.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <freertos/semphr.h>
 #include <driver/uart.h>
+#include <driver/i2c.h>
 #include <esp_timer.h>
 #include <driver/spi_master.h>
 #include <driver/gpio.h>
@@ -81,6 +86,20 @@ extern "C" {
 #endif
 
 #include <managed_i2c.h>
+
+#include <rp2040.h>
+
+#define MASK_BTN_START     (1 << RP2040_INPUT_BUTTON_START)
+#define MASK_BTN_SELECT    (1 << RP2040_INPUT_BUTTON_SELECT)
+#define MASK_BTN_MENU      (1 << RP2040_INPUT_BUTTON_MENU)
+#define MASK_BTN_HOME      (1 << RP2040_INPUT_BUTTON_HOME)
+#define MASK_BTN_JOY_LEFT  (1 << RP2040_INPUT_JOYSTICK_LEFT)
+#define MASK_BTN_JOY_PRESS (1 << RP2040_INPUT_JOYSTICK_PRESS)
+#define MASK_BTN_JOY_DOWN  (1 << RP2040_INPUT_JOYSTICK_DOWN)
+#define MASK_BTN_JOY_UP    (1 << RP2040_INPUT_JOYSTICK_UP)
+#define MASK_BTN_JOY_RIGHT (1 << RP2040_INPUT_JOYSTICK_RIGHT)
+#define MASK_BTN_BACK      (1 << RP2040_INPUT_BUTTON_BACK)
+#define MASK_BTN_ACCEPT    (1 << RP2040_INPUT_BUTTON_ACCEPT)
 
 // I/O expander.
 #include <pca9555.h>
@@ -105,10 +124,14 @@ extern "C" {
 extern "C" {
 #endif
 
+extern xSemaphoreHandle i2c_semaphore;
+extern uint16_t button_bits;
+
 // Variables.
 extern PCA9555   dev_pca9555;
 extern ICE40     dev_ice40;
 extern ILI9341   display;
+extern RP2040    dev_rp2040;
 
 extern uint8_t   framebuffer[ILI9341_BUFFER_SIZE];
 extern pax_buf_t buf;

@@ -77,7 +77,8 @@ void countdown() {
 		
 		// Limit of loop.
 		bool exuent = false;
-		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_HOME, &exuent);
+		rp2040_read_buttons(&dev_rp2040, &button_bits);
+		exuent = !!(button_bits & MASK_BTN_HOME);
 		if (exuent) break;
 	}
 	

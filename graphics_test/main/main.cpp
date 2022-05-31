@@ -6,6 +6,10 @@
 #include "techdemo.h"
 
 extern "C" {
+static uint8_t rp2040_fw_version = 0;
+xSemaphoreHandle i2c_semaphore = NULL;
+uint16_t button_bits = 0;
+
 extern void el_tech_demo();
 extern void fpga_tests();
 extern void name_tag();
@@ -24,6 +28,7 @@ extern "C" {
 PCA9555   dev_pca9555 = {0};
 ICE40     dev_ice40   = {0};
 ILI9341   display     = {0};
+RP2040    dev_rp2040  = {0};
 
 uint8_t   framebuffer[ILI9341_BUFFER_SIZE];
 pax_buf_t buf;
@@ -32,33 +37,88 @@ pax_buf_t clip;
 
 uint8_t   clipbuffer [(ILI9341_WIDTH * ILI9341_HEIGHT * PAX_GET_BPP(PAX_TD_BUF_TYPE) + 7) / 8];
 
-// Wrapper functions for linking the ICE40 component to the PCA9555 component
-esp_err_t ice40_get_done_wrapper (bool *done)  { return pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_CDONE, done);  }
-esp_err_t ice40_set_reset_wrapper(bool  reset) { return pca9555_set_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_RESET, reset); }
+// Wrapper functions for linking CRACK together.
+esp_err_t ice40_get_done_wrapper(bool* done) {
+	uint16_t  buttons;
+	esp_err_t res = rp2040_read_buttons(&dev_rp2040, &buttons);
+	if (res != ESP_OK) return res;
+	*done = !((buttons >> 5) & 0x01);
+	return ESP_OK;
+}
+
+esp_err_t ice40_set_reset_wrapper(bool reset) {
+	esp_err_t res = rp2040_set_fpga(&dev_rp2040, reset);
+	vTaskDelay(100 / portTICK_PERIOD_MS);
+	return res;
+}
+
+void ili9341_set_lcd_mode(bool mode) {
+    ESP_LOGI(TAG, "LCD mode switch to %s", mode ? "FPGA" : "ESP32");
+    esp_err_t res = gpio_set_level((gpio_num_t) GPIO_LCD_MODE, mode);
+    if (res != ESP_OK) {
+        ESP_LOGE(TAG, "Setting LCD mode failed");
+    }
+}
 
 typedef void (*mfunc_t)();
 
 void setup_me_hardware() {
 	esp_err_t res = 0;
+	// vTaskDelay(3000 / portTICK_PERIOD_MS);
 	
     // Interrupts
     res = gpio_install_isr_service(0);
     if (res != ESP_OK) {
-        ESP_LOGE(TAG, "Initializing ISR service failed");
+        ESP_LOGE(TAG, "Initializing ISR service failed.");
 		vTaskDelay(3000 / portTICK_PERIOD_MS);
 		esp_restart();
     }
 	
+	// I2C bus
+	i2c_config_t i2c_config = {
+		.mode = I2C_MODE_MASTER,
+		.sda_io_num = GPIO_I2C_SDA,
+		.scl_io_num = GPIO_I2C_SCL,
+		.sda_pullup_en = false,
+		.scl_pullup_en = false,
+		.master = { .clk_speed = I2C_SPEED, },
+		.clk_flags = 0
+	};
+	
+	res = i2c_param_config(I2C_BUS, &i2c_config);
+	if (res != ESP_OK) {
+		ESP_LOGE(TAG, "Configuring I2C bus parameters failed");
+		vTaskDelay(3000 / portTICK_PERIOD_MS);
+		esp_restart();
+	}
+	
+	res = i2c_set_timeout(I2C_BUS, I2C_TIMEOUT * 80);
+	if (res != ESP_OK) {
+		ESP_LOGE(TAG, "Configuring I2C bus timeout failed");
+		vTaskDelay(3000 / portTICK_PERIOD_MS);
+		esp_restart();
+	}
+	
+	res = i2c_driver_install(I2C_BUS, i2c_config.mode, 0, 0, 0);
+	if (res != ESP_OK) {
+		ESP_LOGE(TAG, "Initializing system I2C bus failed");
+		vTaskDelay(3000 / portTICK_PERIOD_MS);
+		esp_restart();
+	}
+	
+	i2c_semaphore = xSemaphoreCreateBinary();
+	xSemaphoreGive( i2c_semaphore );
+	
 	// Initialise SPI bus.
 	spi_bus_config_t spiConfig = {
-		.mosi_io_num = SPI_MOSI,
-		.miso_io_num = SPI_MISO,
-		.sclk_io_num = SPI_SCLK,
+		.mosi_io_num = GPIO_SPI_MOSI,
+		.miso_io_num = GPIO_SPI_MISO,
+		.sclk_io_num = GPIO_SPI_CLK,
 		.quadwp_io_num = -1,
 		.quadhd_io_num = -1,
-		.max_transfer_sz = SPI_MAX_TRANSFER
+		.max_transfer_sz = SPI_MAX_TRANSFER_SIZE
 	};
-	if (spi_bus_initialize(SPI_BUS, &spiConfig, SPI_DMA_CH)) {
+	if (spi_bus_initialize(SPI_BUS, &spiConfig, SPI_DMA_CHANNEL)) {
 		ESP_LOGE(TAG, "SPI bus initialisation failed.");
 		vTaskDelay(3000 / portTICK_PERIOD_MS);
 		esp_restart();
@@ -66,64 +126,41 @@ void setup_me_hardware() {
 		ESP_LOGI(TAG, "SPI bus initialised.");
 	}
 	
-	res = i2c_init(I2C_BUS_SYS, GPIO_I2C_SYS_SDA, GPIO_I2C_SYS_SCL, I2C_SPEED_SYS, false, false);
+	// Initialise RP2040.
+	dev_rp2040.i2c_bus       = I2C_BUS;
+	dev_rp2040.i2c_address   = RP2040_ADDR;
+	dev_rp2040.pin_interrupt = GPIO_INT_RP2040;
+	dev_rp2040.queue         = xQueueCreate(8, sizeof(rp2040_input_message_t));
+	dev_rp2040.i2c_semaphore = i2c_semaphore;
+
+	res = rp2040_init(&dev_rp2040);
 	if (res != ESP_OK) {
-		ESP_LOGE(TAG, "Initializing system I2C bus failed.");
+		ESP_LOGE(TAG, "Initializing RP2040 failed.");
 		vTaskDelay(3000 / portTICK_PERIOD_MS);
 		esp_restart();
 	} else {
-		ESP_LOGI(TAG, "I2C initialised.");
+		ESP_LOGI(TAG, "RP2040 initialised.");
 	}
-	
-	// Initialise PCA9555.
-	res = pca9555_init(&dev_pca9555, I2C_BUS_SYS, PCA9555_ADDR, GPIO_INT_PCA9555);
-	if (res != ESP_OK) {
-		ESP_LOGE(TAG, "Initializing PCA9555 failed.");
-		vTaskDelay(3000 / portTICK_PERIOD_MS);
-		esp_restart();
-	} else {
-		ESP_LOGI(TAG, "PCA9555 initialised.");
-	}
-	
-	res = pca9555_set_gpio_direction(&dev_pca9555, PCA9555_PIN_FPGA_RESET, true);
-	if (res != ESP_OK) {
-		ESP_LOGE(TAG, "Setting the FPGA reset pin on the PCA9555 to output failed");
+
+	if (rp2040_get_firmware_version(&dev_rp2040, &rp2040_fw_version) != ESP_OK) {
+		ESP_LOGE(TAG, "Failed to read RP2040 firmware version.");
 		vTaskDelay(3000 / portTICK_PERIOD_MS);
 		esp_restart();
 	}
-	
-	res = pca9555_set_gpio_value(&dev_pca9555, PCA9555_PIN_FPGA_RESET, false);
-	if (res != ESP_OK) {
-		ESP_LOGE(TAG, "Setting the FPGA reset pin on the PCA9555 to low failed");
-		vTaskDelay(3000 / portTICK_PERIOD_MS);
-		esp_restart();
-	}
-	
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_START, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_SELECT, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_MENU, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_HOME, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_LEFT, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_PRESS, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_DOWN, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_UP, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_JOY_RIGHT, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_BACK, true);
-	pca9555_set_gpio_polarity(&dev_pca9555, PCA9555_PIN_BTN_ACCEPT, true);
-	
-	// Reset all pin states so that the interrupt function doesn't trigger all the handlers because we inverted the polarity.
-	dev_pca9555.pin_state = 0;
 	
 	// Initialise FPGA.
-	dev_ice40.spi_bus = SPI_BUS;
-	dev_ice40.pin_cs = SPI_CS_FPGA;
-	dev_ice40.pin_done = -1;
-	dev_ice40.pin_reset = -1;
-	dev_ice40.pin_int = GPIO_INT_FPGA;
-	dev_ice40.spi_speed = 23000000; // 23MHz
-	dev_ice40.spi_max_transfer_size = SPI_MAX_TRANSFER;
-	dev_ice40.get_done = ice40_get_done_wrapper;
-	dev_ice40.set_reset = ice40_set_reset_wrapper;
+	dev_ice40.spi_bus               = SPI_BUS;
+	dev_ice40.pin_cs                = GPIO_SPI_CS_FPGA;
+	dev_ice40.pin_done              = -1;
+	dev_ice40.pin_reset             = -1;
+	dev_ice40.pin_int               = GPIO_INT_FPGA;
+	dev_ice40.spi_speed_full_duplex = 26700000;
+	dev_ice40.spi_speed_half_duplex = 40000000;
+	dev_ice40.spi_speed_turbo       = 80000000;
+	dev_ice40.spi_input_delay_ns    = 10;
+	dev_ice40.spi_max_transfer_size = SPI_MAX_TRANSFER_SIZE;
+	dev_ice40.get_done              = ice40_get_done_wrapper;
+	dev_ice40.set_reset             = ice40_set_reset_wrapper;
 	
 	res = ice40_init(&dev_ice40);
 	if (res != ESP_OK) {
@@ -136,14 +173,21 @@ void setup_me_hardware() {
 	
 	// Initialise display.
 	display.spi_bus    = SPI_BUS;
-	display.pin_cs     = DISPLAY_CS;
-	display.pin_dcx    = DISPLAY_DCX;
-	display.pin_reset  = DISPLAY_RST;
+	display.pin_cs     = GPIO_SPI_CS_LCD;
+	display.pin_dcx    = GPIO_SPI_DC_LCD;
+	display.pin_reset  = GPIO_LCD_RESET;
 	display.rotation   = 1;
 	display.color_mode = true;
 	display.spi_speed  = 60000000; // 60 MHz
-	display.spi_max_transfer_size = SPI_MAX_TRANSFER;
-	display.callback   = NULL; // No callbacks just yet.
+	display.spi_max_transfer_size = SPI_MAX_TRANSFER_SIZE;
+	display.callback   = ili9341_set_lcd_mode; // No callbacks just yet.
+	
+	res = gpio_set_direction((gpio_num_t) GPIO_LCD_MODE, GPIO_MODE_OUTPUT);
+	if (res != ESP_OK) {
+		ESP_LOGE(TAG, "Initializing LCD mode GPIO failed");
+		vTaskDelay(3000 / portTICK_PERIOD_MS);
+		esp_restart();
+	}
 	
 	if (ili9341_init(&display)) {
 		ESP_LOGE(TAG, "Display initialisation failed.");
@@ -284,14 +328,18 @@ extern "C" void app_main() {
 		// pax_outline_shape(&buf, 0xff00ff00, n_points, points);
 		// pax_pop_2d(&buf);
 		
-		
+		/*
+pca9555_get_gpio_value\(.*?,\s*PCA9555_PIN_(BTN.*?),\s*&(.*?)\).*?;
+$2 = !!(button_bits & MASK_$1);
+		*/
 		// GET THE BUTTONS!
 		bool up   = last_up;
 		bool down = last_down;
 		bool acc  = false;
-		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_JOY_UP,   &up);
-		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_JOY_DOWN, &down);
-		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_ACCEPT,   &acc);
+		rp2040_read_buttons(&dev_rp2040, &button_bits);
+		up   = !!(button_bits & MASK_BTN_JOY_UP);
+		down = !!(button_bits & MASK_BTN_JOY_DOWN);
+		acc  = !!(button_bits & MASK_BTN_ACCEPT);
 		if (acc) {
 			// PERFORM!
 			menu_functions[selection]();

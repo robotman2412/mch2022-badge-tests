@@ -28,3 +28,6 @@
 [submodule "graphics_test/components/mch2022-keyboard"]
 	path = graphics_test/components/mch2022-keyboard
 	url = https://github.com/robotman2412/mch2022-keyboard
+[submodule "graphics_test/components/mch2022-rp2040"]
+	path = graphics_test/components/mch2022-rp2040
+	url = https://github.com/badgeteam/esp32-component-mch2022-rp2040

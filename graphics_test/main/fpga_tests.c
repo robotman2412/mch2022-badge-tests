@@ -122,13 +122,13 @@ static size_t lcd_init_rom_len = sizeof(lcd_init_rom) / sizeof(uint8_t);
 static const char *TAG = "fpga-tests";
 
 void set_parallel_mode(bool yes) {
-	uint8_t value_of = yes;
-	i2c_write_reg_n(RP2040_I2C_BUS, RP2040_I2C_ADDR, RP2040_REG_LCDM, &value_of, 1);
-	size_t limit = esp_timer_get_time() + 100000;
-	value_of = !yes;
-	while (value_of != yes && esp_timer_get_time() < limit) {
-		i2c_read_reg(RP2040_I2C_BUS, RP2040_I2C_ADDR, RP2040_REG_LCDM, &value_of, 1);
-	}
+	// uint8_t value_of = yes;
+	// i2c_write_reg_n(RP2040_I2C_BUS, RP2040_I2C_ADDR, RP2040_REG_LCDM, &value_of, 1);
+	// size_t limit = esp_timer_get_time() + 100000;
+	// value_of = !yes;
+	// while (value_of != yes && esp_timer_get_time() < limit) {
+	// 	i2c_read_reg(RP2040_I2C_BUS, RP2040_I2C_ADDR, RP2040_REG_LCDM, &value_of, 1);
+	// }
 }
 
 static void fpga_do_lcd() {
@@ -161,7 +161,8 @@ static void fpga_do_lcd() {
 	while (1) {
 		// Limit of loop.
 		bool exuent = false;
-		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_HOME, &exuent);
+		rp2040_read_buttons(&dev_rp2040, &button_bits);
+		exuent = !!(button_bits & MASK_BTN_HOME);
 		if (exuent) break;
 	}
 	ice40_disable(&dev_ice40);
@@ -190,8 +191,9 @@ static void fpga_do_spi() {
 	// Lettuce SPI:FPGA.
 	bool a_button = false;
 	bool b_button = false;
-	pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_ACCEPT, &a_button);
-	pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_BACK, &b_button);
+	rp2040_read_buttons(&dev_rp2040, &button_bits);
+	a_button = !!(button_bits & MASK_BTN_ACCEPT);
+	b_button = !!(button_bits & MASK_BTN_BACK);
 	char not_a_buffer[256];
 	// Clear.
 	pax_background(&buf, 0);
@@ -204,8 +206,9 @@ static void fpga_do_spi() {
 		// What the A BUTTON?
 		bool new_a_button = a_button;
 		bool new_b_button = b_button;
-		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_ACCEPT, &new_a_button);
-		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_BACK, &new_b_button);
+		rp2040_read_buttons(&dev_rp2040, &button_bits);
+		new_a_button = !!(button_bits & MASK_BTN_ACCEPT);
+		new_b_button = !!(button_bits & MASK_BTN_BACK);
 		
 		if (new_a_button != a_button || new_b_button != b_button) {
 			// Create a transaction of this le funneighx.
@@ -239,7 +242,8 @@ static void fpga_do_spi() {
 		
 		// Limit of loop.
 		bool exuent = false;
-		pca9555_get_gpio_value(&dev_pca9555, PCA9555_PIN_BTN_HOME, &exuent);
+		rp2040_read_buttons(&dev_rp2040, &button_bits);
+		exuent = !!(button_bits & MASK_BTN_HOME);
 		if (exuent) break;
 	}
 }
