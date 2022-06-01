@@ -11,6 +11,7 @@ xSemaphoreHandle i2c_semaphore = NULL;
 uint16_t button_bits = 0;
 
 extern void el_tech_demo();
+extern void text_tests();
 extern void fpga_tests();
 extern void name_tag();
 extern void countdown();
@@ -34,8 +35,6 @@ uint8_t   framebuffer[ILI9341_BUFFER_SIZE];
 pax_buf_t buf;
 pax_buf_t clip;
 }
-
-uint8_t   clipbuffer [(ILI9341_WIDTH * ILI9341_HEIGHT * PAX_GET_BPP(PAX_TD_BUF_TYPE) + 7) / 8];
 
 // Wrapper functions for linking CRACK together.
 esp_err_t ice40_get_done_wrapper(bool* done) {
@@ -214,7 +213,7 @@ extern "C" void app_main() {
 		esp_restart();
 	}
 	ESP_LOGI(TAG, "Creating clip buffer.");
-	pax_buf_init(&clip, clipbuffer, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_TD_BUF_TYPE);
+	pax_buf_init(&clip, NULL, ILI9341_WIDTH, ILI9341_HEIGHT, PAX_TD_BUF_TYPE);
 	if (pax_last_error) {
 		ESP_LOGE(TAG, "Clip buffer creation failed.");
 		vTaskDelay(3000 / portTICK_PERIOD_MS);
@@ -223,6 +222,7 @@ extern "C" void app_main() {
 	
 	menu_entry_t menu_entries[] = {
 		{ .text = "Tech demo" },
+		{ .text = "Text test" },
 		{ .text = "Benchmark" },
 		{ .text = "FPGA test" },
 		{ .text = "Name tag" },
@@ -233,6 +233,7 @@ extern "C" void app_main() {
 	};
 	mfunc_t menu_functions[] = {
 		el_tech_demo,
+		text_tests,
 		benchmark,
 		fpga_tests,
 		name_tag,
@@ -328,10 +329,6 @@ extern "C" void app_main() {
 		// pax_outline_shape(&buf, 0xff00ff00, n_points, points);
 		// pax_pop_2d(&buf);
 		
-		/*
-pca9555_get_gpio_value\(.*?,\s*PCA9555_PIN_(BTN.*?),\s*&(.*?)\).*?;
-$2 = !!(button_bits & MASK_$1);
-		*/
 		// GET THE BUTTONS!
 		bool up   = last_up;
 		bool down = last_down;
@@ -364,8 +361,8 @@ $2 = !!(button_bits & MASK_$1);
 		
 		// Menu.
 		char *text = "MCH2022 ¯\\_(ツ)_/¯ firmware"; //"PAX test firmware";
-		pax_font_t *font      = pax_get_font("sky");
-		float       font_size = 18;
+		const pax_font_t *font = pax_get_font("sky");
+		float        font_size = 18;
 		pax_vec1_t size = pax_text_size(font, font_size, text);
 		pax_draw_text(&buf, color1, font, font_size, (buf.width - size.x) / 2, 0, text);
 		pax_simple_line(&buf, color1, 0, 19, buf.width - 1, 19);

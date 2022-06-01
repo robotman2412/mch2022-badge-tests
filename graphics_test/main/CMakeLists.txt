@@ -11,6 +11,7 @@ idf_component_register(
 	"countdown.c"
 	"gimmekeyboard.c"
 	"benchmark.c"
+	"text_tests.c"
 	
 	"mch2022-demo/techdemo.c"
 	"mch2022-demo/sponsors.c"
