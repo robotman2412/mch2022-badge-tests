@@ -18,6 +18,7 @@ extern void countdown();
 extern void png_tests();
 extern void gimmekeyboard();
 extern void benchmark();
+extern void tha_clock();
 }
 
 extern void html_test();
@@ -222,6 +223,7 @@ extern "C" void app_main() {
 	
 	menu_entry_t menu_entries[] = {
 		{ .text = "Tech demo" },
+		{ .text = "Tha clock" },
 		{ .text = "Text test" },
 		{ .text = "Benchmark" },
 		{ .text = "FPGA test" },
@@ -233,6 +235,7 @@ extern "C" void app_main() {
 	};
 	mfunc_t menu_functions[] = {
 		el_tech_demo,
+		tha_clock,
 		text_tests,
 		benchmark,
 		fpga_tests,

@@ -12,6 +12,7 @@ idf_component_register(
 	"gimmekeyboard.c"
 	"benchmark.c"
 	"text_tests.c"
+	"clocks.c"
 	
 	"mch2022-demo/techdemo.c"
 	"mch2022-demo/sponsors.c"
